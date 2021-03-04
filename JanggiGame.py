@@ -35,7 +35,7 @@ class Space:
 
 class Piece:
     
-    def __init__(self, color:str=None, space:str=None, board:Board=None):
+    def __init__(self, color:str=None, space:str=None, board=None):
         self._color = color
         self._space = Space(space)
         self._board = board
@@ -66,7 +66,12 @@ class Piece:
 
     def get_space(self):
         return self._space
-    
+
+    def is_move_right(self, new_space:Space):
+        if self.color == "blue":
+            return (new_space.col - self.get_space().col) > 0
+        return (new_space.col - self.get_space().col) < 0
+
     def get_forward_space(self, starting_space:str=None):
         space = starting_space or self.space
         if self.color == "blue":
@@ -146,10 +151,9 @@ class Horse(Piece):
     def is_blocked(self, new_space:str): # this can either be a red or blue piece
         new_space = Space(new_space)
         row_diff = abs(self.row - new_space.row)
-        
         if row_diff == 2: # first move is forward
             space_to_check = self.get_forward_space()
-        elif (new_space.col - self.col) > 0: # first move is to the right
+        elif self.is_move_right(new_space): # first move is to the right
             space_to_check = self.get_right_space()
         else: # first move is to the left
             space_to_check = self.get_left_space()
@@ -171,31 +175,30 @@ class Horse(Piece):
 class Elephant(Piece):
     
     def is_blocked(self, new_space:str):
+        new_space = Space(new_space)
         row_diff = abs(self.row - new_space.row)
-        move_is_right = (new_space.col - self.get_space().col) > 0
-        
+
         if row_diff == 3:
-            space_to_check = self.get_forward_space(board)
+            first_space_to_check = self.get_forward_space()
         elif move_is_right:
-            space_to_check = self.get_right_space(board)
+            first_space_to_check = self.get_right_space()
         else:
-            space_to_check = self.get_left_space(board)
-            
-        if move_is_right:
-            next_space = space_to_check.get_diagonal_right(board)
+            first_space_to_check = self.get_left_space()
+
+        if self.is_move_right(new_space):
+            next_space_to_check = self.get_diagonal_right(first_space_to_check)
         else:
-            next_space = space_to_check.get_diagonal_left(board)
+            next_space_to_check = self.get_diagonal_left(first_space_to_check)
             
-        if space_to_check.has_piece or next_space.has_piece:
+        if self._board.has_piece(first_space_to_check) or self._board.has_piece(next_space_to_check):
             return True
-        return False
+        return False           
             
-            
-    def move(new_space):
-        if self.is_valid_move(new_space, board, 6):
-            if self.is_blocked(new_space, board):
+    def move(self, new_space:str):
+        if self.is_valid_move(new_space, 6):
+            if self.is_blocked(new_space):
                 raise InvalidMove(f"{self} can't move to {new_space} b/c it's blocked")
-            if new_space.has_opponent_piece(self.color):
+            if self._board.has_opponent_piece(new_space, self.color):
                 self.capture(new_space)
             self.change_space(new_space)
         else:
@@ -348,12 +351,15 @@ def print_board(board):
 b = Board()
 rh = Horse("red", "g5", b)
 bh = Horse("blue", "e6", b)
+re = Elephant("red", "c2", b)
+be = Elephant("blue", "d7", b)
 print_board(b)
-
 bh.move("g5")
-
 print_board(b)
-
+re.move("e5")
+print_board(b)
+re.move("c8")
+print_board(b)
 print(b.captured_pieces)
 
 
