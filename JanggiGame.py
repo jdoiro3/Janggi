@@ -112,7 +112,7 @@ class Piece:
         new_space = self._board.move_piece(self, new_space)
         self._space = new_space
         
-    def is_valid_move(self, new_space:str, test_num:int):
+    def is_valid_move(self, new_space:str, area:int):
         is_blue = self.color == "blue"
         is_red = self.color == "red"
         new_space = Space(new_space)
@@ -124,7 +124,7 @@ class Piece:
                 return False
         delta_row = abs(new_space.row - self.row)
         delta_col = abs(new_space.col - self.col)
-        return delta_row * delta_col == test_num
+        return delta_row * delta_col == area
         
     def capture(self, space:str):
         self._board.add_captured_piece(self.color, space)
