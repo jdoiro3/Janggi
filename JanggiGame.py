@@ -41,10 +41,10 @@ class Piece:
             board.place_piece(self, space)
             
     def __str__(self):
-        return f"{self._color[0]}{self.__class__.__name__}"
+        return f"{self._color[0]}{self.__class__.__name__[0]}  "
     
     def __repr__(self):
-        return f"{self._color[0]}{self.__class__.__name__}"
+        return f"{self._color[0]}{self.__class__.__name__[0]}  "
     
     @property
     def space(self):
@@ -171,26 +171,33 @@ class Guard(Piece):
         pass
 
 class Horse(Piece):
-    
-    def is_blocked(self, new_space:str): # this can either be a red or blue piece
-        new_space = Space(new_space)
-        row_diff = abs(self.row - new_space.row)
-        if row_diff == 2: # first move is forward
-            space_to_check = self.get_forward_space()
-        elif self.is_move_right(new_space): # first move is to the right
-            space_to_check = self.get_right_space()
-        else: # first move is to the left
-            space_to_check = self.get_left_space()
-            
-        if self._board.has_piece(space_to_check):
-            return True
-        return False
 
-    def is_movement_valid(self, new_space):
-        move_area = self.get_move_area(new_space)
-        if move_area != 2 or not self.move_is_forward(new_space):
-            return False
-        return True
+    def get_all_moves(self):
+        moves = []
+        # get all possible first moves
+        forward_space = self.get_forward_space()
+        left_space = self.get_left_space()
+        right_space = self.get_right_space()
+        # first move forward checks
+        if not self._board.has_piece(forward_space):
+            diagonal_left_space = self.get_diagonal_left(forward_space)
+            diagonal_right_space = self.get_diagonal_right(forward_space)
+            if not self._board.has_player_piece(diagonal_left_space, self.color):
+                moves.append(diagonal_left_space)
+            if not self._board.has_player_piece(diagonal_right_space, self.color):
+                moves.append(diagonal_right_space)
+        # first move to the left checks
+        if not self._board.has_piece(left_space):
+            diagonal_left_space = self.get_diagonal_left(left_space)
+            if not self._board.has_player_piece(diagonal_left_space, self.color):
+                moves.append(diagonal_left_space)
+        # first move to the right checks
+        if not self._board.has_piece(right_space):
+            diagonal_right_space = self.get_diagonal_right(right_space)
+            if not self._board.has_player_piece(diagonal_right_space, self.color):
+                moves.append(diagonal_right_space)
+        return moves
+        
 
 class Elephant(Piece):
     
@@ -220,6 +227,40 @@ class Elephant(Piece):
             return False
         return True
 
+    def get_all_moves(self):
+        moves = []
+        # get all possible first moves
+        forward_space = self.get_forward_space()
+        left_space = self.get_left_space()
+        right_space = self.get_right_space()
+        # first move forward checks
+        if not self._board.has_piece(forward_space):
+            diagonal_left_space = self.get_diagonal_left(forward_space)
+            next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
+            diagonal_right_space = self.get_diagonal_right(forward_space)
+            next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
+            if self._board.valid_space(next_diagonal_left_space):
+                if not self._board.has_piece(diagonal_left_space) and not self._board.has_player_piece(next_diagonal_left_space, self.color):
+                    moves.append(next_diagonal_left_space)
+            if self._board.valid_space(next_diagonal_right_space):
+                if not self._board.has_piece(diagonal_right_space) and not self._board.has_player_piece(next_diagonal_right_space, self.color):
+                    moves.append(next_diagonal_right_space)
+        # first move to the left checks
+        if not self._board.has_piece(left_space):
+            diagonal_left_space = self.get_diagonal_left(left_space)
+            next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
+            if self._board.valid_space(next_diagonal_left_space):
+                if not self._board.has_piece(diagonal_left_space) and not self._board.has_player_piece(next_diagonal_left_space, self.color):
+                    moves.append(next_diagonal_left_space)
+        # first move to the right checks
+        if not self._board.has_piece(right_space):
+            diagonal_right_space = self.get_diagonal_right(right_space)
+            next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
+            if self._board.valid_space(next_diagonal_right_space):
+                if not self._board.has_piece(diagonal_right_space) and not self._board.has_player_piece(next_diagonal_right_space, self.color):
+                    moves.append(next_diagonal_right_space)
+        return moves
+
 
 class Chariot(Piece):
     
@@ -246,6 +287,11 @@ class Board:
     def __init__(self):
         self.spaces = {col+str(row): None for col in "abcdefghi" for row in range(1,11)}
         self.captured_pieces = {"blue": [], "red": []}
+
+    def valid_space(self, space):
+        if space in self.spaces:
+            return True
+        return False
         
     def assign_space(self, space:str, obj:Piece=None):
         if space in self.spaces:
@@ -270,8 +316,15 @@ class Board:
             return False
         return True
 
+    def has_player_piece(self, space, color):
+        if self.has_piece(space):
+            piece = self.spaces[space]
+            if piece.color == color:
+                return True
+        return False
+
     def has_opponent_piece(self, space:str, color:str):
-        if self.has_piece(space) :
+        if self.has_piece(space):
             piece = self.spaces[space]
             if piece.color != color:
                 return True
@@ -346,6 +399,35 @@ class JanggiGame:
     def __init__(self):
         self._board = Board()
 
+    def make_move(self, current_space:str, new_space:str):
+        piece = self._board.get_piece(current_space)
+        if piece is None or piece.color != self._turn or self.game_over:
+            return False
+        moves = piece.get_all_moves()
+        if new_space not in moves:
+            return False
+        piece.move(new_space)
+
+        # update game state
+        if self._turn == "blue" and self.is_in_check("red"):
+            self.game_state = "BLUE_WON"
+            self.game_over = True
+        elif self.is_in_check("blue"):
+            self.game_state = "RED_WON"
+            self.game_over = True
+    
+    def is_in_check(self, color:str):
+        general = self._board.get_general(color)
+        moves = general.get_all_moves()
+        if not moves:
+            return True
+        return False
+
+    def get_game_state(self):
+        return self._game_state
+        
+
+
 def print_board(board):
 
     for col in "abcdefghi":
@@ -364,6 +446,7 @@ def print_board(board):
 
 b = Board()
 rh = Horse("red", "g5", b)
+re = Elephant("red", "g6", b)
 """
 bh = Horse("blue", "e6", b)
 re = Elephant("red", "c2", b)
@@ -378,11 +461,9 @@ print_board(b)
 print(b.captured_pieces)
 """
 
-moves = ['f7', 'd8', 'b9', 'b10']
+print(rh.get_all_moves())
+print(re.get_all_moves())
 print_board(b)
-for space in moves:
-    rh.move(space)
-    print_board(b)
 
 
     
