@@ -29,9 +29,7 @@ class Space:
     @property
     def col(self):
         return self._col
-        
 
-# pieces
 
 class Piece:
     
@@ -111,25 +109,51 @@ class Piece:
     def change_space(self, new_space:str):
         new_space = self._board.move_piece(self, new_space)
         self._space = new_space
-        
-    def is_valid_move(self, new_space:str, area:int):
+
+    def move_is_forward(self, new_space:str):
         is_blue = self.color == "blue"
         is_red = self.color == "red"
         new_space = Space(new_space)
-        # piece has to move forward
+        # the check is different base on color
         if (is_blue and new_space.row >= self.row) or (is_red and new_space.row <= self.row):
             return False
-        if self._board.has_piece(str(new_space)):
-            if self._board.get_piece(str(new_space)).color == self.color: # the new space already has a player's piece
-                return False
+        return True
+
+    def get_move_area(self, new_space:str):
+        new_space = Space(new_space)
         delta_row = abs(new_space.row - self.row)
         delta_col = abs(new_space.col - self.col)
-        return delta_row * delta_col == area
-        
+        return delta_row * delta_col
+
+    def space_has_player_piece(self, new_space:str):
+        if self._board.has_piece(new_space):
+            if self._board.get_piece(new_space).color == self.color:
+                return True
+        return False
+
+    # child classes must implement this
+    def is_movement_valid(self, new_space:str):
+        pass
+    
+    # child classes must implement this
+    def is_blocked(self, new_space:str):
+        pass
+
     def capture(self, space:str):
         self._board.add_captured_piece(self.color, space)
         self._board.assign_space(space, None)
-            
+
+    def move(self, new_space:str):
+        if self.space_has_player_piece(new_space):
+            raise InvalidMove(f"{self.color} already has piece on {new_space}")
+        if not self.is_movement_valid(new_space):
+            raise InvalidMove(f"{self} can't move to {new_space}")
+        if self.is_blocked(new_space):
+            raise InvalidMove(f"{self} can't move to {new_space} b/c it's blocked.")
+        if self._board.has_opponent_piece(new_space, self.color):
+            self.capture(new_space)
+        self.change_space(new_space)
+
 
 class General(Piece):
     
@@ -161,16 +185,12 @@ class Horse(Piece):
         if self._board.has_piece(space_to_check):
             return True
         return False
-    
-    def move(self, new_space:str):
-        if self.is_valid_move(new_space, 2):
-            if self.is_blocked(new_space):
-                raise InvalidMove(f"{self} can't move to {new_space} b/c it's blocked")
-            if self._board.has_opponent_piece(new_space, self.color):
-                self.capture(new_space)
-            self.change_space(new_space)
-        else:
-            raise InvalidMove(f"{self} can't move to {new_space}")
+
+    def is_movement_valid(self, new_space):
+        move_area = self.get_move_area(new_space)
+        if move_area != 2 or not self.move_is_forward(new_space):
+            return False
+        return True
 
 class Elephant(Piece):
     
@@ -192,17 +212,14 @@ class Elephant(Piece):
             
         if self._board.has_piece(first_space_to_check) or self._board.has_piece(next_space_to_check):
             return True
-        return False           
-            
-    def move(self, new_space:str):
-        if self.is_valid_move(new_space, 6):
-            if self.is_blocked(new_space):
-                raise InvalidMove(f"{self} can't move to {new_space} b/c it's blocked")
-            if self._board.has_opponent_piece(new_space, self.color):
-                self.capture(new_space)
-            self.change_space(new_space)
-        else:
-            raise InvalidMove(f"{self} can't move to {new_space}")
+        return False   
+
+    def is_movement_valid(self, new_space):
+        move_area = self.get_move_area(new_space)
+        if move_area != 6 or not self.move_is_forward(new_space):
+            return False
+        return True
+
 
 class Chariot(Piece):
     
@@ -210,9 +227,6 @@ class Chariot(Piece):
         if new_space.col != self.get_space().col and new_space.row != self.get_space().row:
             raise InvalidMove
         
-            
-            
-
 class Cannon(Piece):
     
     def move(new_space):
@@ -227,7 +241,6 @@ class Soldier(Piece):
         pass
 
 
-    
 class Board:
     
     def __init__(self):
@@ -348,8 +361,10 @@ def print_board(board):
             print(row, " ", board.get_row(row))
 
 
+
 b = Board()
 rh = Horse("red", "g5", b)
+"""
 bh = Horse("blue", "e6", b)
 re = Elephant("red", "c2", b)
 be = Elephant("blue", "d7", b)
@@ -361,6 +376,13 @@ print_board(b)
 re.move("c8")
 print_board(b)
 print(b.captured_pieces)
+"""
+
+moves = ['f7', 'd8', 'b9', 'b10']
+print_board(b)
+for space in moves:
+    rh.move(space)
+    print_board(b)
 
 
     
