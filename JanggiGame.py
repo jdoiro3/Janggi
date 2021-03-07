@@ -65,16 +65,17 @@ class Piece:
     def get_space(self):
         return self._space
 
-    def is_move_right(self, new_space:Space):
-        if self.color == "blue":
-            return (new_space.col - self.get_space().col) > 0
-        return (new_space.col - self.get_space().col) < 0
-
     def get_forward_space(self, starting_space:str=None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_top_space(space)
         return self._board.get_bottom_space(space)
+
+    def get_forward_spaces(self, starting_space:str=None):
+        space = starting_space or self.space
+        if self.color == "blue":
+            return self._board.get_top_spaces(space)
+        return self._board.get_bottom_spaces(space)
     
     def get_right_space(self, starting_space:str=None):
         space = starting_space or self.space
@@ -110,34 +111,11 @@ class Piece:
         new_space = self._board.move_piece(self, new_space)
         self._space = new_space
 
-    def move_is_forward(self, new_space:str):
-        is_blue = self.color == "blue"
-        is_red = self.color == "red"
-        new_space = Space(new_space)
-        # the check is different base on color
-        if (is_blue and new_space.row >= self.row) or (is_red and new_space.row <= self.row):
-            return False
-        return True
-
-    def get_move_area(self, new_space:str):
-        new_space = Space(new_space)
-        delta_row = abs(new_space.row - self.row)
-        delta_col = abs(new_space.col - self.col)
-        return delta_row * delta_col
-
     def space_has_player_piece(self, new_space:str):
         if self._board.has_piece(new_space):
             if self._board.get_piece(new_space).color == self.color:
                 return True
         return False
-
-    # child classes must implement this
-    def is_movement_valid(self, new_space:str):
-        pass
-    
-    # child classes must implement this
-    def is_blocked(self, new_space:str):
-        pass
 
     def capture(self, space:str):
         self._board.add_captured_piece(self.color, space)
@@ -200,32 +178,6 @@ class Horse(Piece):
         
 
 class Elephant(Piece):
-    
-    def is_blocked(self, new_space:str):
-        new_space = Space(new_space)
-        row_diff = abs(self.row - new_space.row)
-
-        if row_diff == 3:
-            first_space_to_check = self.get_forward_space()
-        elif move_is_right:
-            first_space_to_check = self.get_right_space()
-        else:
-            first_space_to_check = self.get_left_space()
-
-        if self.is_move_right(new_space):
-            next_space_to_check = self.get_diagonal_right(first_space_to_check)
-        else:
-            next_space_to_check = self.get_diagonal_left(first_space_to_check)
-            
-        if self._board.has_piece(first_space_to_check) or self._board.has_piece(next_space_to_check):
-            return True
-        return False   
-
-    def is_movement_valid(self, new_space):
-        move_area = self.get_move_area(new_space)
-        if move_area != 6 or not self.move_is_forward(new_space):
-            return False
-        return True
 
     def get_all_moves(self):
         moves = []
@@ -263,10 +215,19 @@ class Elephant(Piece):
 
 
 class Chariot(Piece):
+
+    def can_move_to_space(self, space):
+        if self._board.has_piece(space):
+            if self._board.get_piece(space).color != self.color:
+                return True
+            else:
+                return False
+        return True
     
-    def move(new_space, board):
-        if new_space.col != self.get_space().col and new_space.row != self.get_space().row:
-            raise InvalidMove
+    def get_all_moves(self):
+        forward_spaces = [space for space in self.get_forward_spaces() if self.can_move_to_space(space)]
+        print(forward_spaces)
+
         
 class Cannon(Piece):
     
@@ -292,6 +253,18 @@ class Board:
         if space in self.spaces:
             return True
         return False
+
+    def get_column_spaces(self, column:int):
+        return [space for space in self.spaces if Space(space).col == column]
+
+    def get_column(self, column:int):
+        return [self.spaces[space] for space in self.get_column_spaces(column)]
+
+    def get_row_spaces(self, row:int):
+        return [space for space in self.spaces if Space(space).row == row]
+
+    def get_row(self, row:int):
+        return [self.spaces[space] for space in self.get_row_spaces(row)]
         
     def assign_space(self, space:str, obj:Piece=None):
         if space in self.spaces:
@@ -301,9 +274,6 @@ class Board:
 
     def add_captured_piece(self, capturer_color:str, space:str):
         self.captured_pieces[capturer_color].append(self.spaces[space])
-        
-    def get_row(self, row:int):
-        return [self.spaces[space] for space in self.spaces.keys() if int(space[1:]) == row]
 
     def get_piece(self, space:str):
         try:
@@ -363,6 +333,16 @@ class Board:
         col = chr(space.col)
         row = str(space.row-1)
         return col+row
+
+    def get_top_spaces(self, space:str):
+        space = Space(space)
+        column_spaces = self.get_column_spaces(space.col)
+        return [space for space in column_spaces if Space(space).row < space.row]
+
+    def get_bottom_spaces(self, space:str):
+        space = Space(space)
+        column_spaces = self.get_column_spaces(space.col)
+        return [s for s in column_spaces if Space(s).row > space.row]
     
     def get_bottom_space(self, space:str):
         space = Space(space)
@@ -447,6 +427,9 @@ def print_board(board):
 b = Board()
 rh = Horse("red", "g5", b)
 re = Elephant("red", "g6", b)
+be = Elephant("blue", "g7", b)
+bh = Horse("red", "d8", b)
+rc = Chariot("red", "d4", b)
 """
 bh = Horse("blue", "e6", b)
 re = Elephant("red", "c2", b)
@@ -463,6 +446,7 @@ print(b.captured_pieces)
 
 print(rh.get_all_moves())
 print(re.get_all_moves())
+print("sdfsd", rc.get_all_moves())
 print_board(b)
 
 
