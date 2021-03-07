@@ -1,3 +1,5 @@
+
+
 # exceptions
 
 class InvalidCapture(Exception):
@@ -122,26 +124,43 @@ class Piece:
         self._board.assign_space(space, None)
 
     def move(self, new_space:str):
-        if self.space_has_player_piece(new_space):
-            raise InvalidMove(f"{self.color} already has piece on {new_space}")
-        if not self.is_movement_valid(new_space):
-            raise InvalidMove(f"{self} can't move to {new_space}")
-        if self.is_blocked(new_space):
-            raise InvalidMove(f"{self} can't move to {new_space} b/c it's blocked.")
         if self._board.has_opponent_piece(new_space, self.color):
             self.capture(new_space)
         self.change_space(new_space)
 
 
 class General(Piece):
+
+    def get_available_adjacent_spaces(self, starting_space:str=None):
+        curr_space = starting_space or self.space
+        spaces = [
+            self._board.get_top_space(curr_space),
+            self._board.get_bottom_space(curr_space),
+            self._board.get_bottom_left_space(curr_space),
+            self._board.get_bottom_right_space(curr_space),
+            self._board.get_top_left_space(curr_space),
+            self._board.get_top_right_space(curr_space)
+        ]
+        return [
+            space for space in spaces
+            if self._board.has_opponent_piece(space, self.color) or not self._board.has_piece(space)
+        ]
     
-    def move(new_space):
-        pass
-        # 1. figures out what the possible spaces it can move to are
-        # 2. sees if the new space is one of the possible spaces it can move to
-        # 3. if it is a possible move, it see's if the new space has an opponents piece
-        #    and if it does, it captures it, removing it form the space, and then updating the space's piece and its space
-        # Notes: Once the opponents piece is removed, it can be deleted from memory.
+    def get_palace_moves(self):
+        adjacent_spaces = set(self.get_available_adjacent_spaces())
+        palace_spaces = set(self._board.get_palace_spaces(self.color))
+        return list(palace_spaces & adjacent_spaces)
+
+    def threatened(self):
+        opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
+        if self.space in opponent_attacking_spaces:
+            return True
+        return False
+
+    def get_legal_moves(self):
+        opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
+        return list(set(self.get_palace_moves()) - set(opponent_attacking_spaces))
+
 
 class Guard(Piece):
 
@@ -150,67 +169,124 @@ class Guard(Piece):
 
 class Horse(Piece):
 
-    def get_all_moves(self):
+    def get_possible_attacks(self):
+        spaces = []
+        forward_space = self.get_forward_space()
+        left_space = self.get_left_space()
+        right_space = self.get_right_space()
+        # possible spaces the piece will pass through if the first move is forward
+        if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
+            forward_diag_right_space = self.get_diagonal_right(forward_space)
+            forward_diag_left_space = self.get_diagonal_left(forward_space)
+            spaces += [forward_diag_right_space, forward_diag_left_space]
+        # possible spaces the piece will pass through if the first move is to the left
+        if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
+            left_diag_left_space = self.get_diagonal_left(left_space)
+            spaces.append(left_diag_left_space)
+        # possible spaces the piece will pass through if the first move is to the right
+        if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
+            right_diag_right_space = self.get_diagonal_right(right_space)
+            spaces.append(right_diag_right_space)
+        return spaces
+
+    def get_legal_moves(self):
         moves = []
         # get all possible first moves
         forward_space = self.get_forward_space()
         left_space = self.get_left_space()
         right_space = self.get_right_space()
         # first move forward checks
-        if not self._board.has_piece(forward_space):
+        if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
             diagonal_left_space = self.get_diagonal_left(forward_space)
             diagonal_right_space = self.get_diagonal_right(forward_space)
-            if not self._board.has_player_piece(diagonal_left_space, self.color):
+            if not self._board.has_player_piece(diagonal_left_space, self.color) and self._board.valid_space(diagonal_left_space):
                 moves.append(diagonal_left_space)
-            if not self._board.has_player_piece(diagonal_right_space, self.color):
+            if not self._board.has_player_piece(diagonal_right_space, self.color) and self._board.valid_space(diagonal_right_space):
                 moves.append(diagonal_right_space)
         # first move to the left checks
-        if not self._board.has_piece(left_space):
+        if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
             diagonal_left_space = self.get_diagonal_left(left_space)
-            if not self._board.has_player_piece(diagonal_left_space, self.color):
+            if not self._board.has_player_piece(diagonal_left_space, self.color) and self._board.valid_space(diagonal_left_space):
                 moves.append(diagonal_left_space)
         # first move to the right checks
-        if not self._board.has_piece(right_space):
+        if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
             diagonal_right_space = self.get_diagonal_right(right_space)
-            if not self._board.has_player_piece(diagonal_right_space, self.color):
+            if not self._board.has_player_piece(diagonal_right_space, self.color) and self._board.valid_space(diagonal_right_space):
                 moves.append(diagonal_right_space)
         return moves
         
 
 class Elephant(Piece):
 
-    def get_all_moves(self):
+    def get_possible_attacks(self):
+        spaces = []
+        forward_space = self.get_forward_space()
+        left_space = self.get_left_space()
+        right_space = self.get_right_space()
+        # possible spaces the piece will pass through if the first move is forward
+        if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
+            forward_diag_right_space = self.get_diagonal_right(forward_space)
+            if not self._board.has_piece(forward_diag_right_space) and self._board.valid_space(forward_diag_right_space):
+                forward_diag_two_right_space = self.get_diagonal_right(forward_diag_right_space)
+                if self._board.has_piece(forward_diag_two_right_space) self._board.valid_space(forward_diag_two_right_space):
+                    spaces.append()
+            forward_diag_left_space = self.get_diagonal_left(forward_space)
+            spaces += [forward_diag_right_space, forward_diag_left_space]
+        # possible spaces the piece will pass through if the first move is to the left
+        if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
+            left_diag_left_space = self.get_diagonal_left(left_space)
+            spaces.append(left_diag_left_space)
+        # possible spaces the piece will pass through if the first move is to the right
+        if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
+            right_diag_right_space = self.get_diagonal_right(right_space)
+            spaces.append(right_diag_right_space)
+        return spaces
+
+
+    def get_legal_moves(self):
         moves = []
         # get all possible first moves
         forward_space = self.get_forward_space()
         left_space = self.get_left_space()
         right_space = self.get_right_space()
         # first move forward checks
-        if not self._board.has_piece(forward_space):
+        if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
             diagonal_left_space = self.get_diagonal_left(forward_space)
             next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
             diagonal_right_space = self.get_diagonal_right(forward_space)
             next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
-            if self._board.valid_space(next_diagonal_left_space):
-                if not self._board.has_piece(diagonal_left_space) and not self._board.has_player_piece(next_diagonal_left_space, self.color):
-                    moves.append(next_diagonal_left_space)
-            if self._board.valid_space(next_diagonal_right_space):
-                if not self._board.has_piece(diagonal_right_space) and not self._board.has_player_piece(next_diagonal_right_space, self.color):
-                    moves.append(next_diagonal_right_space)
+            if (
+                    not self._board.has_piece(diagonal_left_space)
+                    and not self._board.has_player_piece(next_diagonal_left_space, self.color)
+                    and self._board.valid_space(next_diagonal_left_space)
+            ):
+                moves.append(next_diagonal_left_space)
+            if (
+                    not self._board.has_piece(diagonal_right_space)
+                    and not self._board.has_player_piece(next_diagonal_right_space, self.color)
+                    and self._board.valid_space(next_diagonal_right_space)
+            ):
+                moves.append(next_diagonal_right_space)
         # first move to the left checks
-        if not self._board.has_piece(left_space):
+        if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
             diagonal_left_space = self.get_diagonal_left(left_space)
             next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
-            if self._board.valid_space(next_diagonal_left_space):
-                if not self._board.has_piece(diagonal_left_space) and not self._board.has_player_piece(next_diagonal_left_space, self.color):
-                    moves.append(next_diagonal_left_space)
+            if (
+                    not self._board.has_piece(diagonal_left_space)
+                    and not self._board.has_player_piece(next_diagonal_left_space, self.color)
+                    and self._board.valid_space(next_diagonal_left_space)
+            ):
+                moves.append(next_diagonal_left_space)
         # first move to the right checks
-        if not self._board.has_piece(right_space):
+        if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
             diagonal_right_space = self.get_diagonal_right(right_space)
             next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
-            if self._board.valid_space(next_diagonal_right_space):
-                if not self._board.has_piece(diagonal_right_space) and not self._board.has_player_piece(next_diagonal_right_space, self.color):
-                    moves.append(next_diagonal_right_space)
+            if (
+                    not self._board.has_piece(diagonal_right_space)
+                    and not self._board.has_player_piece(next_diagonal_right_space, self.color)
+                    and self._board.valid_space(next_diagonal_right_space)
+            ):
+                moves.append(next_diagonal_right_space)
         return moves
 
 
@@ -222,11 +298,97 @@ class Chariot(Piece):
                 return True
             else:
                 return False
-        return True
+        return self._board.valid_space(space)
+
+    def get_legal_left_spaces(self):
+        spaces = []
+        space = self.get_left_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_left_space(space)
+        if self._board.has_opponent_piece(space, self.color):
+            spaces.append(space)
+        return spaces
+
+    def get_legal_right_spaces(self):
+        spaces = []
+        space = self.get_right_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_right_space(space)
+        if self._board.has_opponent_piece(space, self.color):
+            spaces.append(space)
+        return spaces
+
+    def get_legal_backward_spaces(self):
+        spaces = []
+        space = self.get_backward_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_backward_space(space)
+        if self._board.has_opponent_piece(space, self.color):
+            spaces.append(space)
+        return spaces
+
+    def get_legal_forward_spaces(self):
+        spaces = []
+        space = self.get_forward_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_forward_space(space)
+        if self._board.has_opponent_piece(space, self.color):
+            spaces.append(space)
+        return spaces
+
+    def get_possible_attack_forward(self):
+        spaces = []
+        space = self.get_forward_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_forward_space(space)
+        spaces.append(space)
+        return spaces
+
+    def get_possible_attack_backward(self):
+        spaces = []
+        space = self.get_backward_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_backward_space(space)
+        spaces.append(space)
+        return spaces
+
+    def get_possible_attacks_left(self):
+        spaces = []
+        space = self.get_left_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_left_space(space)
+        spaces.append(space)
+        return spaces
+
+    def get_possible_attacks_right(self):
+        spaces = []
+        space = self.get_right_space()
+        while self._board.valid_space(space) and not self._board.has_piece(space):
+            spaces.append(space)
+            space = self.get_right_space(space)
+        spaces.append(space)
+        return spaces
+
+    def get_possible_attacks(self):
+        forward = self.get_possible_attack_forward()
+        backward = self.get_possible_attack_backward()
+        left = self.get_possible_attacks_left()
+        right = self.get_possible_attacks_right()
+        return forward+backward+left+right
     
-    def get_all_moves(self):
-        forward_spaces = [space for space in self.get_forward_spaces() if self.can_move_to_space(space)]
-        print(forward_spaces)
+    def get_legal_moves(self):
+        forward = self.get_legal_forward_spaces()
+        backward = self.get_legal_backward_spaces()
+        left = self.get_legal_left_spaces()
+        right = self.get_legal_right_spaces()
+        return forward+backward+left+right
 
         
 class Cannon(Piece):
@@ -247,12 +409,27 @@ class Board:
     
     def __init__(self):
         self.spaces = {col+str(row): None for col in "abcdefghi" for row in range(1,11)}
+        self.blue_palace_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
+        self.red_palace_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
         self.captured_pieces = {"blue": [], "red": []}
+
+    def get_palace_spaces(self, color:str):
+        if color == "red":
+            return self.red_palace_spaces
+        elif color == "blue":
+            return self.blue_palace_spaces
+        else:
+            return []
 
     def valid_space(self, space):
         if space in self.spaces:
             return True
         return False
+
+    def return_none_or_space(self, space):
+        if self.valid_space(space):
+            return space
+        return None
 
     def get_column_spaces(self, column:int):
         return [space for space in self.spaces if Space(space).col == column]
@@ -282,6 +459,8 @@ class Board:
             raise InvalidSpace(f"{space} is not a valid space")
     
     def has_piece(self, space:str):
+        if not self.valid_space(space):
+            return False
         if self.spaces[space] is None:
             return False
         return True
@@ -308,6 +487,25 @@ class Board:
                 self.assign_space(space, piece)
         else:
             raise InvalidSpace(f"{space} is not a valid space")
+
+    def get_pieces(self, color=None):
+        if color is None:
+            return [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
+        else:
+            pieces = [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
+            return [piece for piece in pieces if piece.color == color]
+
+    def get_opponents_attacking_spaces(self, color):
+        if color == "blue":
+            pieces = self.get_pieces("red")
+        else:
+            pieces = self.get_pieces("blue")
+        all_spaces = set()
+        for piece in pieces:
+            spaces = piece.get_possible_attacks()
+            for space in spaces:
+                all_spaces.add(space)
+        return all_spaces
             
     def move_piece(self, piece:Piece, new_space:str):
         if self.spaces[new_space] is not None:
@@ -320,19 +518,22 @@ class Board:
         space = Space(space)
         col = chr(space.col+1)
         row = str(space.row)
-        return col+row
+        right_space = col+row
+        return self.return_none_or_space(right_space)
     
     def get_left_space(self, space:str):
         space = Space(space)
         col = chr(space.col-1)
         row = str(space.row)
-        return col+row
+        left_space = col+row
+        return self.return_none_or_space(left_space)
     
     def get_top_space(self, space:str):
         space = Space(space)
         col = chr(space.col)
         row = str(space.row-1)
-        return col+row
+        top_space = col+row
+        return self.return_none_or_space(top_space)
 
     def get_top_spaces(self, space:str):
         space = Space(space)
@@ -348,46 +549,65 @@ class Board:
         space = Space(space)
         col = chr(space.col)
         row = str(space.row+1)
-        return col+row
+        bottom_space = col+row
+        return self.return_none_or_space(bottom_space)
     
     def get_top_right_space(self, space:str):
         space = Space(space)
         col = chr(space.col+1)
         row = str(space.row-1)
-        return col+row
+        top_right_space = col+row
+        return self.return_none_or_space(top_right_space)
     
     def get_top_left_space(self, space:str):
         space = Space(space)
         col = chr(space.col-1)
         row = str(space.row-1)
-        return col+row
+        top_left_space = col+row
+        return self.return_none_or_space(top_left_space)
     
     def get_bottom_right_space(self, space:str):
         space = Space(space)
         col = chr(space.col+1)
         row = str(space.row+1)
-        return col+row
+        bottom_right_space = col+row
+        return self.return_none_or_space(bottom_right_space)
     
     def get_bottom_left_space(self, space:str):
         space = Space(space)
         col = chr(space.col-1)
         row = str(space.row+1)
-        return col+row
+        bottom_left_space = col+row
+        return self.return_none_or_space(bottom_left_space)
 
 class JanggiGame:
     
     def __init__(self):
         self._board = Board()
+        self._turn = "blue"
+        self._game_state = "UNFINISHED"
+
+    def change_turn(self):
+        if self._turn == "blue":
+            self._turn = "red"
+        else:
+            self._turn = "blue"
 
     def make_move(self, current_space:str, new_space:str):
-        piece = self._board.get_piece(current_space)
-        if piece is None or piece.color != self._turn or self.game_over:
+        if self._game_state != "UNFINISHED":
             return False
-        moves = piece.get_all_moves()
-        if new_space not in moves:
+        if self.is_in_check(self._turn) and self._board.get_general(self._turn).space != current_space:
+            return False
+        if current_space == new_space:
+            self.change_turn()
+            return True
+        piece = self._board.get_piece(current_space)
+        if piece is None or piece.color != self._turn:
+            return False
+        legal_spaces = piece.get_legal_moves()
+        if new_space not in legal_spaces:
             return False
         piece.move(new_space)
-
         # update game state
         if self._turn == "blue" and self.is_in_check("red"):
             self.game_state = "BLUE_WON"
@@ -395,13 +615,11 @@ class JanggiGame:
         elif self.is_in_check("blue"):
             self.game_state = "RED_WON"
             self.game_over = True
+        return True
     
     def is_in_check(self, color:str):
         general = self._board.get_general(color)
-        moves = general.get_all_moves()
-        if not moves:
-            return True
-        return False
+        return general.threatened()
 
     def get_game_state(self):
         return self._game_state
@@ -426,28 +644,23 @@ def print_board(board):
 
 b = Board()
 rh = Horse("red", "g5", b)
-re = Elephant("red", "g6", b)
-be = Elephant("blue", "g7", b)
+re = Elephant("red", "g3", b)
+be = Elephant("blue", "g6", b)
 bh = Horse("red", "d8", b)
 rc = Chariot("red", "d4", b)
-"""
-bh = Horse("blue", "e6", b)
-re = Elephant("red", "c2", b)
-be = Elephant("blue", "d7", b)
+bc = Chariot("blue", "g4", b)
+rg = General("red", "e2", b)
+print(b.get_opponents_attacking_spaces("red"))
+
+print(rg.get_legal_moves())
 print_board(b)
-bh.move("g5")
-print_board(b)
-re.move("e5")
-print_board(b)
-re.move("c8")
+bc.move("d4")
 print_board(b)
 print(b.captured_pieces)
-"""
-
-print(rh.get_all_moves())
-print(re.get_all_moves())
-print("sdfsd", rc.get_all_moves())
+bc.move("d8")
 print_board(b)
+print(b.captured_pieces)
+
 
 
     
