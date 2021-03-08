@@ -34,32 +34,32 @@ class Space:
 
 
 class Piece:
-    
-    def __init__(self, color:str=None, space:str=None, board=None):
+
+    def __init__(self, color: str = None, space: str = None, board: 'Board' = None):
         self._color = color
         self._space = Space(space)
         self._board = board
         if space is not None and board is not None:
             board.place_piece(self, space)
-            
+
     def __str__(self):
         return f"{self._color[0]}{self.__class__.__name__[0]}  "
-    
+
     def __repr__(self):
         return f"{self._color[0]}{self.__class__.__name__[0]}  "
-    
+
     @property
     def space(self):
         return str(self._space)
-    
+
     @property
     def row(self):
         return self._space.row
-    
+
     @property
     def col(self):
         return self._space.col
-    
+
     @property
     def color(self):
         return self._color
@@ -67,83 +67,266 @@ class Piece:
     def get_space(self):
         return self._space
 
-    def get_forward_space(self, starting_space:str=None):
+    def get_forward_space(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_top_space(space)
         return self._board.get_bottom_space(space)
 
-    def get_forward_spaces(self, starting_space:str=None):
+    def get_forward_spaces(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_top_spaces(space)
         return self._board.get_bottom_spaces(space)
-    
-    def get_right_space(self, starting_space:str=None):
+
+    def get_right_space(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_right_space(space)
         return self._board.get_left_space(space)
-    
-    def get_left_space(self, starting_space:str=None):
+
+    def get_left_space(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_left_space(space)
         return self._board.get_right_space(space)
-    
-    def get_backward_space(self, starting_space:str=None):
+
+    def get_backward_space(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
-            return self._board.get_bottom_space(space) 
+            return self._board.get_bottom_space(space)
         return self._board.get_top_space(space)
-    
-    def get_diagonal_right(self, starting_space:str=None):
+
+    def get_diagonal_right(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
-            return self._board.get_top_right_space(space) 
-        return self._board.get_bottom_left_space(space)      
-    
-    def get_diagonal_left(self, starting_space:str=None):
+            return self._board.get_top_right_space(space)
+        return self._board.get_bottom_left_space(space)
+
+    def get_diagonal_left(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
-            return self._board.get_top_left_space(space) 
+            return self._board.get_top_left_space(space)
         return self._board.get_bottom_right_space(space)
-    
-    def change_space(self, new_space:str):
+
+    def change_space(self, new_space: str):
         new_space = self._board.move_piece(self, new_space)
         self._space = new_space
 
-    def space_has_player_piece(self, new_space:str):
+    def space_has_player_piece(self, new_space: str):
         if self._board.has_piece(new_space):
             if self._board.get_piece(new_space).color == self.color:
                 return True
         return False
 
-    def capture(self, space:str):
+    def capture(self, space: str):
         self._board.add_captured_piece(self.color, space)
         self._board.assign_space(space, None)
 
-    def move(self, new_space:str):
+    def move(self, new_space: str):
         if self._board.has_opponent_piece(new_space, self.color):
             self.capture(new_space)
         self.change_space(new_space)
+
+
+class Board:
+
+    def __init__(self):
+        self.spaces = {col + str(row): None for col in "abcdefghi" for row in range(1, 11)}
+        self.blue_palace_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
+        self.red_palace_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
+        self.captured_pieces = {"blue": [], "red": []}
+
+    def get_palace_spaces(self, color: str):
+        if color == "red":
+            return self.red_palace_spaces
+        elif color == "blue":
+            return self.blue_palace_spaces
+        else:
+            return []
+
+    def get_general(self, color):
+        pieces = [self.spaces[space] for space in self.spaces if self.spaces[space] is not None]
+        for piece in pieces:
+            if piece.color == color and type(piece) == General:
+                return piece
+
+    def get_opponent_general(self, color):
+        if color == "blue":
+            return self.get_general("red")
+        return self.get_general("blue")
+
+    def valid_space(self, space):
+        if space in self.spaces:
+            return True
+        return False
+
+    def get_column_spaces(self, column: int):
+        return [space for space in self.spaces if Space(space).col == column]
+
+    def get_column(self, column: int):
+        return [self.spaces[space] for space in self.get_column_spaces(column)]
+
+    def get_row_spaces(self, row: int):
+        return [space for space in self.spaces if Space(space).row == row]
+
+    def get_row(self, row: int):
+        return [self.spaces[space] for space in self.get_row_spaces(row)]
+
+    def assign_space(self, space: str, obj: Piece = None):
+        if space in self.spaces:
+            self.spaces[str(space)] = obj
+        else:
+            raise InvalidSpace(f"{space} is not a valid space")
+
+    def add_captured_piece(self, capturer_color: str, space: str):
+        self.captured_pieces[capturer_color].append(self.spaces[space])
+
+    def get_piece(self, space: str):
+        try:
+            return self.spaces[space]
+        except KeyError:
+            raise InvalidSpace(f"{space} is not a valid space")
+
+    def has_piece(self, space: str):
+        if not self.valid_space(space):
+            return False
+        if self.spaces[space] is None:
+            return False
+        return True
+
+    def has_player_piece(self, space, color):
+        if self.has_piece(space):
+            piece = self.spaces[space]
+            if piece.color == color:
+                return True
+        return False
+
+    def has_opponent_piece(self, space: str, color: str):
+        if self.has_piece(space):
+            piece = self.spaces[space]
+            if piece.color != color:
+                return True
+        return False
+
+    def place_piece(self, piece: Piece, space: str):
+        if space in self.spaces:
+            if self.spaces[space] is not None:
+                print("can't do that")
+            else:
+                self.assign_space(space, piece)
+        else:
+            raise InvalidSpace(f"{space} is not a valid space")
+
+    def get_pieces(self, color=None):
+        if color is None:
+            return [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
+        else:
+            pieces = [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
+            return [piece for piece in pieces if piece.color == color]
+
+    def get_opponents_attacking_spaces(self, color):
+        if color == "blue":
+            pieces = self.get_pieces("red")
+        else:
+            pieces = self.get_pieces("blue")
+        all_spaces = set()
+        for piece in pieces:
+            spaces = piece.get_attacking_spaces()
+            for space in spaces:
+                all_spaces.add(space)
+        return all_spaces
+
+    def move_piece(self, piece: Piece, new_space: str):
+        if self.spaces[new_space] is not None:
+            return piece.space
+        self.assign_space(piece.space, None)
+        self.assign_space(new_space, piece)
+        return Space(new_space)
+
+    def get_right_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col + 1)
+        row = str(space.row)
+        right_space = col + row
+        return right_space
+
+    def get_left_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col - 1)
+        row = str(space.row)
+        left_space = col + row
+        return left_space
+
+    def get_top_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col)
+        row = str(space.row - 1)
+        top_space = col + row
+        return top_space
+
+    def get_top_spaces(self, space: str):
+        space = Space(space)
+        column_spaces = self.get_column_spaces(space.col)
+        return [space for space in column_spaces if Space(space).row < space.row]
+
+    def get_bottom_spaces(self, space: str):
+        space = Space(space)
+        column_spaces = self.get_column_spaces(space.col)
+        return [s for s in column_spaces if Space(s).row > space.row]
+
+    def get_bottom_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col)
+        row = str(space.row + 1)
+        bottom_space = col + row
+        return bottom_space
+
+    def get_top_right_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col + 1)
+        row = str(space.row - 1)
+        top_right_space = col + row
+        return top_right_space
+
+    def get_top_left_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col - 1)
+        row = str(space.row - 1)
+        top_left_space = col + row
+        return top_left_space
+
+    def get_bottom_right_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col + 1)
+        row = str(space.row + 1)
+        bottom_right_space = col + row
+        return bottom_right_space
+
+    def get_bottom_left_space(self, space: str):
+        space = Space(space)
+        col = chr(space.col - 1)
+        row = str(space.row + 1)
+        bottom_left_space = col + row
+        return bottom_left_space
 
 
 class General(Piece):
 
     def get_available_adjacent_spaces(self, starting_space:str=None):
         curr_space = starting_space or self.space
-        spaces = [
-            self._board.get_top_space(curr_space),
-            self._board.get_bottom_space(curr_space),
-            self._board.get_bottom_left_space(curr_space),
-            self._board.get_bottom_right_space(curr_space),
-            self._board.get_top_left_space(curr_space),
-            self._board.get_top_right_space(curr_space)
+        board = self._board
+        adjacent_spaces = [
+            board.get_top_space(curr_space),
+            board.get_bottom_space(curr_space),
+            board.get_bottom_left_space(curr_space),
+            board.get_bottom_right_space(curr_space),
+            board.get_top_left_space(curr_space),
+            board.get_top_right_space(curr_space)
         ]
         return [
-            space for space in spaces
-            if self._board.has_opponent_piece(space, self.color) or not self._board.has_piece(space)
+            space for space in adjacent_spaces
+            if board.has_opponent_piece(space, self.color) or not board.has_piece(space)
         ]
     
     def get_palace_moves(self):
@@ -355,190 +538,6 @@ class Soldier(Piece):
     
     def move(new_space):
         pass
-
-
-class Board:
-    
-    def __init__(self):
-        self.spaces = {col+str(row): None for col in "abcdefghi" for row in range(1,11)}
-        self.blue_palace_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
-        self.red_palace_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
-        self.captured_pieces = {"blue": [], "red": []}
-
-
-    def get_palace_spaces(self, color:str):
-        if color == "red":
-            return self.red_palace_spaces
-        elif color == "blue":
-            return self.blue_palace_spaces
-        else:
-            return []
-
-    def get_general(self, color):
-        pieces = [self.spaces[space] for space in self.spaces if self.spaces[space] is not None]
-        for piece in pieces:
-            if piece.color == color and type(piece) == General:
-                return piece
-
-    def get_opponent_general(self, color):
-        if color == "blue":
-            return self.get_general("red")
-        return self.get_general("blue")
-
-    def valid_space(self, space):
-        if space in self.spaces:
-            return True
-        return False
-
-    def get_column_spaces(self, column:int):
-        return [space for space in self.spaces if Space(space).col == column]
-
-    def get_column(self, column:int):
-        return [self.spaces[space] for space in self.get_column_spaces(column)]
-
-    def get_row_spaces(self, row:int):
-        return [space for space in self.spaces if Space(space).row == row]
-
-    def get_row(self, row:int):
-        return [self.spaces[space] for space in self.get_row_spaces(row)]
-        
-    def assign_space(self, space:str, obj:Piece=None):
-        if space in self.spaces:
-            self.spaces[str(space)] = obj
-        else:
-            raise InvalidSpace(f"{space} is not a valid space")
-
-    def add_captured_piece(self, capturer_color:str, space:str):
-        self.captured_pieces[capturer_color].append(self.spaces[space])
-
-    def get_piece(self, space:str):
-        try:
-            return self.spaces[space]
-        except KeyError:
-            raise InvalidSpace(f"{space} is not a valid space")
-    
-    def has_piece(self, space:str):
-        if not self.valid_space(space):
-            return False
-        if self.spaces[space] is None:
-            return False
-        return True
-
-    def has_player_piece(self, space, color):
-        if self.has_piece(space):
-            piece = self.spaces[space]
-            if piece.color == color:
-                return True
-        return False
-
-    def has_opponent_piece(self, space:str, color:str):
-        if self.has_piece(space):
-            piece = self.spaces[space]
-            if piece.color != color:
-                return True
-        return False
-
-    def place_piece(self, piece:Piece, space:str):
-        if space in self.spaces:
-            if self.spaces[space] is not None:
-                print("can't do that")
-            else:
-                self.assign_space(space, piece)
-        else:
-            raise InvalidSpace(f"{space} is not a valid space")
-
-    def get_pieces(self, color=None):
-        if color is None:
-            return [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
-        else:
-            pieces = [self.get_piece(space) for space in self.spaces if self.get_piece(space) is not None]
-            return [piece for piece in pieces if piece.color == color]
-
-    def get_opponents_attacking_spaces(self, color):
-        if color == "blue":
-            pieces = self.get_pieces("red")
-        else:
-            pieces = self.get_pieces("blue")
-        all_spaces = set()
-        for piece in pieces:
-            spaces = piece.get_attacking_spaces()
-            for space in spaces:
-                all_spaces.add(space)
-        print(all_spaces)
-        return all_spaces
-            
-    def move_piece(self, piece:Piece, new_space:str):
-        if self.spaces[new_space] is not None:
-            return piece.space
-        self.assign_space(piece.space, None)
-        self.assign_space(new_space, piece)
-        return Space(new_space)
-    
-    def get_right_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col+1)
-        row = str(space.row)
-        right_space = col+row
-        return right_space
-    
-    def get_left_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col-1)
-        row = str(space.row)
-        left_space = col+row
-        return left_space
-    
-    def get_top_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col)
-        row = str(space.row-1)
-        top_space = col+row
-        return top_space
-
-    def get_top_spaces(self, space:str):
-        space = Space(space)
-        column_spaces = self.get_column_spaces(space.col)
-        return [space for space in column_spaces if Space(space).row < space.row]
-
-    def get_bottom_spaces(self, space:str):
-        space = Space(space)
-        column_spaces = self.get_column_spaces(space.col)
-        return [s for s in column_spaces if Space(s).row > space.row]
-    
-    def get_bottom_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col)
-        row = str(space.row+1)
-        bottom_space = col+row
-        return bottom_space
-    
-    def get_top_right_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col+1)
-        row = str(space.row-1)
-        top_right_space = col+row
-        return top_right_space
-    
-    def get_top_left_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col-1)
-        row = str(space.row-1)
-        top_left_space = col+row
-        return top_left_space
-    
-    def get_bottom_right_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col+1)
-        row = str(space.row+1)
-        bottom_right_space = col+row
-        return bottom_right_space
-    
-    def get_bottom_left_space(self, space:str):
-        space = Space(space)
-        col = chr(space.col-1)
-        row = str(space.row+1)
-        bottom_left_space = col+row
-        return bottom_left_space
 
 class JanggiGame:
     
