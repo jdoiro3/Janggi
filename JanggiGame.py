@@ -163,18 +163,6 @@ class Board:
             return True
         return False
 
-    def get_column_spaces(self, column: int):
-        return [space for space in self.spaces if Space(space).col == column]
-
-    def get_column(self, column: int):
-        return [self.spaces[space] for space in self.get_column_spaces(column)]
-
-    def get_row_spaces(self, row: int):
-        return [space for space in self.spaces if Space(space).row == row]
-
-    def get_row(self, row: int):
-        return [self.spaces[space] for space in self.get_row_spaces(row)]
-
     def assign_space(self, space: str, obj: Piece = None):
         if space in self.spaces:
             self.spaces[str(space)] = obj
