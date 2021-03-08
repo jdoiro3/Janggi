@@ -169,7 +169,7 @@ class Guard(Piece):
 
 class Horse(Piece):
 
-    def get_possible_attacks(self):
+    def get_attacking_spaces(self):
         spaces = []
         forward_space = self.get_forward_space()
         left_space = self.get_left_space()
@@ -177,16 +177,21 @@ class Horse(Piece):
         # possible spaces the piece will pass through if the first move is forward
         if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
             forward_diag_right_space = self.get_diagonal_right(forward_space)
+            if self._board.valid_space(forward_diag_right_space):
+                spaces.append(forward_diag_right_space)
             forward_diag_left_space = self.get_diagonal_left(forward_space)
-            spaces += [forward_diag_right_space, forward_diag_left_space]
+            if self._board.valid_space(forward_diag_left_space):
+                spaces.append(forward_diag_left_space)
         # possible spaces the piece will pass through if the first move is to the left
         if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
             left_diag_left_space = self.get_diagonal_left(left_space)
-            spaces.append(left_diag_left_space)
+            if self._board.valid_space(left_diag_left_space):
+                spaces.append(left_diag_left_space)
         # possible spaces the piece will pass through if the first move is to the right
         if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
             right_diag_right_space = self.get_diagonal_right(right_space)
-            spaces.append(right_diag_right_space)
+            if self._board.valid_space(right_diag_right_space):
+                spaces.append(right_diag_right_space)
         return spaces
 
     def get_legal_moves(self):
@@ -218,7 +223,7 @@ class Horse(Piece):
 
 class Elephant(Piece):
 
-    def get_possible_attacks(self):
+    def get_attacking_spaces(self):
         spaces = []
         forward_space = self.get_forward_space()
         left_space = self.get_left_space()
@@ -227,67 +232,63 @@ class Elephant(Piece):
         if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
             forward_diag_right_space = self.get_diagonal_right(forward_space)
             if not self._board.has_piece(forward_diag_right_space) and self._board.valid_space(forward_diag_right_space):
-                forward_diag_two_right_space = self.get_diagonal_right(forward_diag_right_space)
-                if self._board.has_piece(forward_diag_two_right_space) self._board.valid_space(forward_diag_two_right_space):
-                    spaces.append()
+                forward_diag_right_space = self.get_diagonal_right(forward_diag_right_space)
+                if self._board.valid_space(forward_diag_right_space):
+                    spaces.append(forward_diag_right_space)
             forward_diag_left_space = self.get_diagonal_left(forward_space)
-            spaces += [forward_diag_right_space, forward_diag_left_space]
+            if not self._board.has_piece(forward_diag_left_space) and self._board.valid_space(forward_diag_left_space):
+                forward_diag_left_space = self.get_diagonal_left(forward_diag_left_space)
+                if self._board.valid_space(forward_diag_left_space):
+                    spaces.append(forward_diag_left_space)
         # possible spaces the piece will pass through if the first move is to the left
         if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
             left_diag_left_space = self.get_diagonal_left(left_space)
-            spaces.append(left_diag_left_space)
+            if not self._board.has_piece(left_diag_left_space) and self._board.valid_space(left_diag_left_space):
+                left_diag_left_space = self.get_diagonal_left(left_diag_left_space)
+                if self._board.valid_space(left_diag_left_space):
+                    spaces.append(left_diag_left_space)
         # possible spaces the piece will pass through if the first move is to the right
         if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
             right_diag_right_space = self.get_diagonal_right(right_space)
-            spaces.append(right_diag_right_space)
+            if not self._board.has_piece(right_diag_right_space) and self._board.valid_space(right_diag_right_space):
+                right_diag_right_space = self.get_diagonal_left(right_diag_right_space)
+                if self._board.valid_space(right_diag_right_space):
+                    spaces.append(right_diag_right_space)
         return spaces
 
 
     def get_legal_moves(self):
-        moves = []
-        # get all possible first moves
+        spaces = []
         forward_space = self.get_forward_space()
         left_space = self.get_left_space()
         right_space = self.get_right_space()
-        # first move forward checks
+        # possible spaces the piece will pass through if the first move is forward
         if not self._board.has_piece(forward_space) and self._board.valid_space(forward_space):
-            diagonal_left_space = self.get_diagonal_left(forward_space)
-            next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
-            diagonal_right_space = self.get_diagonal_right(forward_space)
-            next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
-            if (
-                    not self._board.has_piece(diagonal_left_space)
-                    and not self._board.has_player_piece(next_diagonal_left_space, self.color)
-                    and self._board.valid_space(next_diagonal_left_space)
-            ):
-                moves.append(next_diagonal_left_space)
-            if (
-                    not self._board.has_piece(diagonal_right_space)
-                    and not self._board.has_player_piece(next_diagonal_right_space, self.color)
-                    and self._board.valid_space(next_diagonal_right_space)
-            ):
-                moves.append(next_diagonal_right_space)
-        # first move to the left checks
+            forward_diag_right_space = self.get_diagonal_right(forward_space)
+            if not self._board.has_piece(forward_diag_right_space) and self._board.valid_space(forward_diag_right_space):
+                forward_diag_right_space = self.get_diagonal_right(forward_diag_right_space)
+                if self._board.valid_space(forward_diag_right_space) and not self._board.has_player_piece(forward_diag_right_space, self.color):
+                    spaces.append(forward_diag_right_space)
+            forward_diag_left_space = self.get_diagonal_left(forward_space)
+            if not self._board.has_piece(forward_diag_left_space) and self._board.valid_space(forward_diag_left_space):
+                forward_diag_left_space = self.get_diagonal_left(forward_diag_left_space)
+                if self._board.valid_space(forward_diag_left_space) and not self._board.has_player_piece(forward_diag_left_space, self.color):
+                    spaces.append(forward_diag_left_space)
+        # possible spaces the piece will pass through if the first move is to the left
         if not self._board.has_piece(left_space) and self._board.valid_space(left_space):
-            diagonal_left_space = self.get_diagonal_left(left_space)
-            next_diagonal_left_space = self.get_diagonal_left(diagonal_left_space)
-            if (
-                    not self._board.has_piece(diagonal_left_space)
-                    and not self._board.has_player_piece(next_diagonal_left_space, self.color)
-                    and self._board.valid_space(next_diagonal_left_space)
-            ):
-                moves.append(next_diagonal_left_space)
-        # first move to the right checks
+            left_diag_left_space = self.get_diagonal_left(left_space)
+            if not self._board.has_piece(left_diag_left_space) and self._board.valid_space(left_diag_left_space):
+                left_diag_left_space = self.get_diagonal_left(left_diag_left_space)
+                if self._board.valid_space(left_diag_left_space) and not self._board.has_player_piece(left_diag_left_space, self.color):
+                    spaces.append(left_diag_left_space)
+        # possible spaces the piece will pass through if the first move is to the right
         if not self._board.has_piece(right_space) and self._board.valid_space(right_space):
-            diagonal_right_space = self.get_diagonal_right(right_space)
-            next_diagonal_right_space = self.get_diagonal_right(diagonal_right_space)
-            if (
-                    not self._board.has_piece(diagonal_right_space)
-                    and not self._board.has_player_piece(next_diagonal_right_space, self.color)
-                    and self._board.valid_space(next_diagonal_right_space)
-            ):
-                moves.append(next_diagonal_right_space)
-        return moves
+            right_diag_right_space = self.get_diagonal_right(right_space)
+            if not self._board.has_piece(right_diag_right_space) and self._board.valid_space(right_diag_right_space):
+                right_diag_right_space = self.get_diagonal_left(right_diag_right_space)
+                if self._board.valid_space(right_diag_right_space) and not self._board.has_player_piece(right_diag_right_space, self.color):
+                    spaces.append(right_diag_right_space)
+        return spaces
 
 
 class Chariot(Piece):
@@ -376,7 +377,7 @@ class Chariot(Piece):
         spaces.append(space)
         return spaces
 
-    def get_possible_attacks(self):
+    def get_attacking_spaces(self):
         forward = self.get_possible_attack_forward()
         backward = self.get_possible_attack_backward()
         left = self.get_possible_attacks_left()
@@ -412,6 +413,7 @@ class Board:
         self.blue_palace_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
         self.red_palace_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
         self.captured_pieces = {"blue": [], "red": []}
+        
 
     def get_palace_spaces(self, color:str):
         if color == "red":
@@ -420,6 +422,17 @@ class Board:
             return self.blue_palace_spaces
         else:
             return []
+
+    def get_general(self, color):
+        pieces = [self.spaces[space] for space in self.spaces if self.spaces[space] is not None]
+        for piece in pieces:
+            if piece.color == color and type(piece) == General:
+                return piece
+
+    def get_opponent_general(self, color):
+        if color == "blue":
+            return self.get_general("red")
+        return self.get_general("blue")
 
     def valid_space(self, space):
         if space in self.spaces:
@@ -502,9 +515,10 @@ class Board:
             pieces = self.get_pieces("blue")
         all_spaces = set()
         for piece in pieces:
-            spaces = piece.get_possible_attacks()
+            spaces = piece.get_attacking_spaces()
             for space in spaces:
                 all_spaces.add(space)
+        print(all_spaces)
         return all_spaces
             
     def move_piece(self, piece:Piece, new_space:str):
@@ -609,10 +623,10 @@ class JanggiGame:
             return False
         piece.move(new_space)
         # update game state
-        if self._turn == "blue" and self.is_in_check("red"):
+        if self._turn == "blue" and self._board.get_opponent_general("blue").get_legal_moves() == []:
             self.game_state = "BLUE_WON"
             self.game_over = True
-        elif self.is_in_check("blue"):
+        elif self._turn == "red" and self._board.get_opponent_general("red").get_legal_moves() == []:
             self.game_state = "RED_WON"
             self.game_over = True
         return True
@@ -643,13 +657,16 @@ def print_board(board):
 
 
 b = Board()
-rh = Horse("red", "g5", b)
-re = Elephant("red", "g3", b)
+rh = Horse("red", "h5", b)
+bc = Chariot("blue", "f7", b)
 be = Elephant("blue", "g6", b)
-bh = Horse("red", "d8", b)
-rc = Chariot("red", "d4", b)
-bc = Chariot("blue", "g4", b)
+be = Elephant("blue", "d3", b)
+bh = Horse("blue", "d8", b)
+bh = Horse("blue", "c5", b)
+bc = Chariot("blue", "h2", b)
+bc = Chariot("blue", "h1", b)
 rg = General("red", "e2", b)
+print(type(rg) == General)
 print(b.get_opponents_attacking_spaces("red"))
 
 print(rg.get_legal_moves())
