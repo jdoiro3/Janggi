@@ -136,6 +136,8 @@ class Board:
         self.blue_palace_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
         self.red_palace_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
         self.captured_pieces = {"blue": [], "red": []}
+        self.blue_pieces = []
+        self.red_pieces = []
 
     def get_palace_spaces(self, color: str):
         if color == "red":
@@ -435,95 +437,44 @@ class Chariot(Piece):
                 return False
         return self._board.valid_space(space)
 
-    def get_legal_left_spaces(self):
+    def get_moves_in_direction(self, direction: str, getting_legal_moves: bool = True):
+
+        if direction == "left":
+            get_next_space = self.get_left_space
+        elif direction == "right":
+            get_next_space = self.get_right_space
+        elif direction == "backward":
+            get_next_space = self.get_backward_space
+        elif direction == "forward":
+            get_next_space = self.get_forward_space
+        else:
+            raise ValueError
+
         spaces = []
-        space = self.get_left_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
+        board = self._board
+        space = get_next_space()
+        while board.valid_space(space) and not board.has_piece(space):
             spaces.append(space)
-            space = self.get_left_space(space)
-        if self._board.has_opponent_piece(space, self.color):
+            space = get_next_space(space)
+        if board.has_opponent_piece(space, self.color) and getting_legal_moves:
+            spaces.append(space)
+        elif not getting_legal_moves:
             spaces.append(space)
         return spaces
-
-    def get_legal_right_spaces(self):
-        spaces = []
-        space = self.get_right_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_right_space(space)
-        if self._board.has_opponent_piece(space, self.color):
-            spaces.append(space)
-        return spaces
-
-    def get_legal_backward_spaces(self):
-        spaces = []
-        space = self.get_backward_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_backward_space(space)
-        if self._board.has_opponent_piece(space, self.color):
-            spaces.append(space)
-        return spaces
-
-    def get_legal_forward_spaces(self):
-        spaces = []
-        space = self.get_forward_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_forward_space(space)
-        if self._board.has_opponent_piece(space, self.color):
-            spaces.append(space)
-        return spaces
-
-    def get_possible_attack_forward(self):
-        spaces = []
-        space = self.get_forward_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_forward_space(space)
-        spaces.append(space)
-        return spaces
-
-    def get_possible_attack_backward(self):
-        spaces = []
-        space = self.get_backward_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_backward_space(space)
-        spaces.append(space)
-        return spaces
-
-    def get_possible_attacks_left(self):
-        spaces = []
-        space = self.get_left_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_left_space(space)
-        spaces.append(space)
-        return spaces
-
-    def get_possible_attacks_right(self):
-        spaces = []
-        space = self.get_right_space()
-        while self._board.valid_space(space) and not self._board.has_piece(space):
-            spaces.append(space)
-            space = self.get_right_space(space)
-        spaces.append(space)
-        return spaces
-
-    def get_attacking_spaces(self):
-        forward = self.get_possible_attack_forward()
-        backward = self.get_possible_attack_backward()
-        left = self.get_possible_attacks_left()
-        right = self.get_possible_attacks_right()
-        return forward+backward+left+right
     
     def get_legal_moves(self):
-        forward = self.get_legal_forward_spaces()
-        backward = self.get_legal_backward_spaces()
-        left = self.get_legal_left_spaces()
-        right = self.get_legal_right_spaces()
-        return forward+backward+left+right
+        legal_forward_spaces = self.get_moves_in_direction("forward")
+        legal_left_spaces = self.get_moves_in_direction("left")
+        legal_right_spaces = self.get_moves_in_direction("right")
+        legal_backward_spaces = self.get_moves_in_direction("backward")
+        return legal_forward_spaces+legal_left_spaces+legal_right_spaces+legal_backward_spaces
+
+    def get_attacking_spaces(self):
+        attacking_forward_spaces = self.get_moves_in_direction("forward", getting_legal_moves=False)
+        attacking_left_spaces = self.get_moves_in_direction("left", getting_legal_moves=False)
+        attacking_right_spaces = self.get_moves_in_direction("right", getting_legal_moves=False)
+        attacking_backward_spaces = self.get_moves_in_direction("backward", getting_legal_moves=False)
+        return attacking_forward_spaces+attacking_left_spaces+attacking_right_spaces+attacking_backward_spaces
 
         
 class Cannon(Piece):
