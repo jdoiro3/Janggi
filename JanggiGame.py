@@ -467,7 +467,7 @@ class Elephant(Piece):
         board = self._board
         for spaces in move_sequences:
             if board.valid_space(spaces[0]) and board.valid_space(spaces[1]) and board.valid_space(spaces[2]):
-                if not board.space_open(spaces[0]) and board.space_open(spaces[1]) and not board.has_player_piece(spaces[2], self.color):
+                if board.space_open(spaces[0]) and board.space_open(spaces[1]) and not board.has_player_piece(spaces[2], self.color):
                     legal_moves.append(spaces[2])
         return legal_moves
 
