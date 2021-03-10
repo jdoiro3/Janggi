@@ -250,7 +250,7 @@ class Board:
     def place_piece(self, piece: Piece, space: str):
         if space in self.spaces:
             if self.spaces[space] is not None:
-                print("can't do that")
+                #print("can't do that")
             else:
                 self.assign_space(space, piece)
         else:
@@ -602,27 +602,27 @@ class JanggiGame:
 
     def make_move(self, current_space:str, new_space:str):
         if self._game_state != "UNFINISHED":
-            print("game over")
+            #print("game over")
             return False
         if self.is_in_check(self._turn) and self._board.get_general(self._turn).space != current_space:
-            print("need to move general. in check")
+            #print("need to move general. in check")
             return False
         if current_space == new_space:
             self.change_turn()
             return True
         piece = self._board.get_piece(current_space)
         if piece is None or piece.color != self._turn:
-            print("not your turn")
+            #print("not your turn")
             return False
         legal_spaces = piece.get_legal_moves()
         if new_space not in legal_spaces:
-            print("not a legal move")
+            #print("not a legal move")
             return False
         piece.move(new_space)
         # make sure move doesn't put player's general in check
         if self.is_in_check(self._turn):
             piece.move(current_space) # move the piece back
-            print("can't move into check")
+            #print("can't move into check")
             return False
         # update game state
         if self._turn == "blue" and self._board.get_opponent_general("blue").get_legal_moves() == []:
