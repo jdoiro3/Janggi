@@ -251,6 +251,7 @@ class Board:
         if space in self.spaces:
             if self.spaces[space] is not None:
                 #print("can't do that")
+                pass
             else:
                 self.assign_space(space, piece)
         else:
