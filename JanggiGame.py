@@ -8,7 +8,7 @@ class InvalidCapture(Exception):
 class InvalidMove(Exception):
     pass
 
-class InvalidSpace(Exception):
+class SpaceError(Exception):
     pass
 
 class SpaceSequence:
@@ -134,12 +134,6 @@ class Piece:
         new_space = self._board.move_piece(self, new_space)
         self._space = new_space
 
-    def space_has_player_piece(self, new_space: str):
-        if self._board.has_piece(new_space):
-            if self._board.get_piece(new_space).color == self.color:
-                return True
-        return False
-
     def capture(self, space: str):
         self._board.add_captured_piece(self.color, space)
         self._board.assign_space(space, None)
@@ -183,6 +177,24 @@ class Board:
     def fortress_spaces(self):
         return self.red_fortress_spaces+self.blue_fortress_spaces
 
+    def valid_space(self, space):
+        if space in self.spaces:
+            return True
+        return False
+
+    def place_piece(self, piece: Piece, space: str):
+        if not self.valid_space(space):
+            raise SpaceError(f"{space} is not a valid space")
+        if self.spaces[space] is not None:
+            raise SpaceOccupied(f"{space} already has a piece")
+        self.spaces[space] = piece
+    
+    def assign_space(self, space: str, obj: Piece = None):
+        if self.valid_space(space):
+            self.spaces[space] = obj
+        else:
+            raise SpaceError(f"{space} is not a valid space")
+
     def get_fortress_spaces(self, color: str):
         if color == "red":
             return self.red_fortress_spaces
@@ -200,31 +212,22 @@ class Board:
         elif color == "red":
             return self.get_general("blue")
 
-    def valid_space(self, space):
-        if space in self.spaces:
-            return True
-        return False
-
     def get_row_spaces(self, row: int):
         return [space for space in self.spaces if Space(space).row == row]
 
     def get_row(self, row: int):
         return [self.spaces[space] for space in self.get_row_spaces(row)]
 
-    def assign_space(self, space: str, obj: Piece = None):
-        if space in self.spaces:
-            self.spaces[str(space)] = obj
-        else:
-            raise InvalidSpace(f"{space} is not a valid space")
-
     def add_captured_piece(self, capturer_color: str, space: str):
-        self.captured_pieces[capturer_color].append(self.spaces[space])
+        piece = self.spaces[space]
+        self.captured_pieces[capturer_color].append(piece)
+        self.pieces[piece.color]["other-pieces"].remove(piece)
+
 
     def get_piece(self, space: str):
-        try:
-            return self.spaces[space]
-        except KeyError:
-            raise InvalidSpace(f"{space} is not a valid space")
+        if not self.valid_space(space):
+            raise SpaceError(f"{space} is not a valid space")
+        return self.spaces[space]
 
     def has_piece(self, space: str):
         if not self.valid_space(space):
@@ -233,6 +236,11 @@ class Board:
             return False
         return True
 
+    def space_open(self, space: str):
+        if not self.valid_space(space):
+            return False
+        return not self.has_piece(space)
+        
     def has_player_piece(self, space, color):
         if self.has_piece(space):
             piece = self.spaces[space]
@@ -246,16 +254,6 @@ class Board:
             if piece.color != color:
                 return True
         return False
-
-    def place_piece(self, piece: Piece, space: str):
-        if space in self.spaces:
-            if self.spaces[space] is not None:
-                #print("can't do that")
-                pass
-            else:
-                self.assign_space(space, piece)
-        else:
-            raise InvalidSpace(f"{space} is not a valid space")
 
     def get_pieces(self, color):
         return self.pieces[color]["other-pieces"]
@@ -273,7 +271,7 @@ class Board:
         return all_spaces
 
     def move_piece(self, piece: Piece, new_space: str):
-        if self.spaces[new_space] is not None:
+        if self.has_piece(new_space):
             return piece.space
         self.assign_space(piece.space, None)
         self.assign_space(new_space, piece)
@@ -363,7 +361,7 @@ class FortressPiece(Piece):
         ]
         return [
             space for space in adjacent_spaces
-            if (board.has_opponent_piece(space, self.color) or not board.has_piece(space)) and board.valid_space(space)
+            if (board.has_opponent_piece(space, self.color) or board.space_open(space)) and board.valid_space(space)
         ]
 
     def get_fortress_moves(self):
@@ -419,7 +417,7 @@ class Horse(Piece):
         board = self._board
         for spaces in move_sequences:
             if board.valid_space(spaces[0]) and board.valid_space(spaces[1]):
-                if not board.has_piece(spaces[0]):
+                if board.space_open(spaces[0]):
                     attacking_spaces.append(spaces[1])
         return attacking_spaces
 
@@ -429,7 +427,7 @@ class Horse(Piece):
         board = self._board
         for spaces in move_sequences:
             if board.valid_space(spaces[0]) and board.valid_space(spaces[1]):
-                if not board.has_piece(spaces[0]) and not board.has_player_piece(spaces[1], self.color):
+                if board.space_open(spaces[0]) and not board.has_player_piece(spaces[1], self.color):
                     legal_moves.append(spaces[1])
         return legal_moves
         
@@ -458,7 +456,7 @@ class Elephant(Piece):
         board = self._board
         for spaces in move_sequences:
             if board.valid_space(spaces[0]) and board.valid_space(spaces[1]) and board.valid_space(spaces[2]):
-                if not board.has_piece(spaces[0]) and not board.has_piece(spaces[1]):
+                if board.space_open(spaces[0]) and board.space_open(spaces[1]):
                     attacking_spaces.append(spaces[2])
         return attacking_spaces
 
@@ -469,7 +467,7 @@ class Elephant(Piece):
         board = self._board
         for spaces in move_sequences:
             if board.valid_space(spaces[0]) and board.valid_space(spaces[1]) and board.valid_space(spaces[2]):
-                if not board.has_piece(spaces[0]) and not board.has_piece(spaces[1]) and not board.has_player_piece(spaces[2], self.color):
+                if not board.space_open(spaces[0]) and board.space_open(spaces[1]) and not board.has_player_piece(spaces[2], self.color):
                     legal_moves.append(spaces[2])
         return legal_moves
 
@@ -487,7 +485,7 @@ class Chariot(Piece):
         spaces = []
         board = self._board
         space = get_next_space()
-        while board.valid_space(space) and not board.has_piece(space):
+        while board.valid_space(space) and board.space_open(space):
             spaces.append(space)
             space = get_next_space(space)
         if board.has_opponent_piece(space, self.color) and move_type == "legal" and board.valid_space(space):
@@ -509,7 +507,7 @@ class Chariot(Piece):
             diag_spaces = self._diagonal_moves[self.space]
             if self.space in ["e2", "e9"]:
                 for space in diag_spaces:
-                    if board.has_opponent_piece(space, self.color) or not board.has_piece(space):
+                    if board.has_opponent_piece(space, self.color) or board.space_open(space):
                         spaces.append(space)
             else:
                 seq = SpaceSequence(diag_spaces)
@@ -543,11 +541,11 @@ class Cannon(Piece):
         spaces = []
         board = self._board
         space = get_next_space()
-        while not board.has_piece(space) and board.valid_space(space):
+        while board.space_open(space) and board.valid_space(space):
             space = get_next_space(space)
         if board.has_piece(space) and board.valid_space(space):
             space = get_next_space(space)
-        while board.valid_space(space) and (not board.has_piece(space) or board.has_opponent_piece(space, self.color)):
+        while board.valid_space(space) and (board.space_open(space) or board.has_opponent_piece(space, self.color)):
             spaces.append(space)
             space = get_next_space(space)
         if move_type == "attacking" and board.valid_space(space):
@@ -574,7 +572,7 @@ class Soldier(Piece):
         legal_spaces = []
         board = self._board
         for space in [self.get_forward_space(), self.get_left_space(), self.get_right_space()]:
-            if (board.has_opponent_piece(space, self.color) or not board.has_piece(space)) and board.valid_space(space):
+            if (board.has_opponent_piece(space, self.color) or board.space_open(space)) and board.valid_space(space):
                 legal_spaces.append(space)
         return legal_spaces
     
