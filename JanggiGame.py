@@ -533,12 +533,37 @@ class Chariot(Piece):
 
         
 class Cannon(Piece):
+
+    def get_moves_in_direction(self, next_space_method, move_type: str = "legal"):
+        
+        get_next_space = next_space_method
+        spaces = []
+        board = self._board
+        space = get_next_space()
+        while not board.has_piece(space) and board.valid_space(space):
+            space = get_next_space(space)
+        if board.has_piece(space) and board.valid_space(space):
+            space = get_next_space(space)
+        while board.valid_space(space) and (not board.has_piece(space) or board.has_opponent_piece(space, self.color)):
+            spaces.append(space)
+            space = get_next_space(space)
+        if move_type == "attacking" and board.valid_space(space):
+            spaces.append(space)
+        return spaces
     
     def get_legal_moves(self):
-        return []
+        legal_forward_spaces = self.get_moves_in_direction(self.get_forward_space)
+        legal_left_spaces = self.get_moves_in_direction(self.get_left_space)
+        legal_right_spaces = self.get_moves_in_direction(self.get_right_space)
+        legal_backward_spaces = self.get_moves_in_direction(self.get_backward_space) 
+        return legal_forward_spaces+legal_left_spaces+legal_right_spaces+legal_backward_spaces
 
     def get_attacking_spaces(self):
-        return []
+        legal_forward_spaces = self.get_moves_in_direction(self.get_forward_space, "attacking")
+        legal_left_spaces = self.get_moves_in_direction(self.get_left_space, "attacking")
+        legal_right_spaces = self.get_moves_in_direction(self.get_right_space, "attacking")
+        legal_backward_spaces = self.get_moves_in_direction(self.get_backward_space, "attacking") 
+        return legal_forward_spaces+legal_left_spaces+legal_right_spaces+legal_backward_spaces
 
 class Soldier(Piece):
     
@@ -634,22 +659,6 @@ def print_board(board):
             print(str(row)+"  "+" | ".join(["  " if v is None else str(v) for v in board.get_row(row)]))
     print("------------------------------------------------")
 
-
-"""
-game = JanggiGame()
-print_board(game._board)
-r = game.make_move("a4", "a2")
-print(r)
-print_board(game._board)
-"""
-"""
-b = Board(True)
-rc = Chariot("red", "e2", b)
-bc2 = Chariot("red", "f1", b)
-print_board(b)
-print(rc.get_legal_moves())
-print(rc.get_attacking_spaces())
-"""
 
 
 
