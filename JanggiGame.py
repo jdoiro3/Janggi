@@ -354,6 +354,8 @@ class FortressPiece(Piece):
         adjacent_spaces = [
             board.get_top_space(curr_space),
             board.get_bottom_space(curr_space),
+            board.get_left_space(curr_space),
+            board.get_right_space(curr_space),
             board.get_bottom_left_space(curr_space),
             board.get_bottom_right_space(curr_space),
             board.get_top_left_space(curr_space),
