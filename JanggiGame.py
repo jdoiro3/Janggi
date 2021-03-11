@@ -125,7 +125,7 @@ class Piece:
         return False
 
     def change_space(self, new_space: str):
-        new_space = self._board.move_piece(self, new_space)
+        self._board.move_piece(self, new_space)
         self._space = new_space
 
     def capture(self, space: str):
@@ -217,7 +217,6 @@ class Board:
         self.captured_pieces[capturer_color].append(piece)
         self.pieces[piece.color]["other-pieces"].remove(piece)
 
-
     def get_piece(self, space: str):
         if not self.valid_space(space):
             raise SpaceError(f"{space} is not a valid space")
@@ -265,11 +264,8 @@ class Board:
         return all_spaces
 
     def move_piece(self, piece: Piece, new_space: str):
-        if self.has_piece(new_space):
-            return piece.space
         self.assign_space(piece.space, None)
         self.assign_space(new_space, piece)
-        return Space(new_space)
 
     def get_right_space(self, space: str):
         space = Space(space)
@@ -368,6 +364,7 @@ class General(FortressPiece):
 
     def in_check(self):
         opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
+        print(self.space, opponent_attacking_spaces)
         if self.space in opponent_attacking_spaces:
             return True
         return False
