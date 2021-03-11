@@ -368,7 +368,6 @@ class General(FortressPiece):
 
     def in_check(self):
         opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
-        print("space:", self.space, "attacking:", opponent_attacking_spaces)
         if self.space in opponent_attacking_spaces:
             return True
         return False
@@ -658,11 +657,27 @@ def print_board(board):
     print("------------------------------------------------")
 
 
+if __name__ == "__main__":
+    col_dict = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g', 8: 'h', 9: 'i'}
+    def move_converter(move, col_dict):
+        row = move[0]
+        col = col_dict[int(move[1])]
+        if row == "0":
+            row = "10"
+        return col + row
+    moves = [("79", "78"), ("41", "42"), ("02", "83"), ("12", "33"), ("82", "85"), ("32", "35"),
+             ("75", "74"), ("17", "36"), ("03", "75"), ("45", "46"), ("08", "76"), ("13", "45"), ("04", "94"),
+             ("25", "26"), ("06", "96"), ("11", "51"), ("77", "67"), ("16", "25")]
+    conv_moves = [(move_converter(move[0], col_dict), move_converter(move[1], col_dict)) for move in moves]
 
-b = Board(True)
-c = Cannon("red", "b3", b)
-h = Horse("red", "c3", b)
-print_board(b)
-print(c.get_legal_moves())
+    game = JanggiGame()
+
+    for move in conv_moves:
+        print(move)
+        print(game._turn)
+        print("red:", game.is_in_check("red"), "blue:", game.is_in_check("blue"))
+        print(game.make_move(move[0], move[1]))
+        game.view()
+        print(game.get_game_state())
 
     
