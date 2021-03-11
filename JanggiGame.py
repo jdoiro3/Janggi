@@ -2,12 +2,6 @@
 
 # exceptions
 
-class InvalidCapture(Exception):
-    pass
-
-class InvalidMove(Exception):
-    pass
-
 class SpaceError(Exception):
     pass
 
@@ -155,8 +149,8 @@ class Board:
                 "blue": {
                     "general": General("blue", "e9", self), 
                     "other-pieces": [
-                        Chariot("blue", "a10", self), Chariot("blue", "i10", self), Elephant("blue", "b10", self), Elephant("blue", "g10", self), 
-                        Horse("blue", "c10", self), Horse("blue", "h10", self), Cannon("blue", "b8", self), Cannon("blue", "h8", self), 
+                        Chariot("blue", "a10", self), Chariot("blue", "i10", self), Elephant("blue", "c10", self), Elephant("blue", "h10", self),
+                        Horse("blue", "b10", self), Horse("blue", "g10", self), Cannon("blue", "b8", self), Cannon("blue", "h8", self),
                         Guard("blue", "d10", self), Guard("blue", "f10", self), Soldier("blue", "a7", self), Soldier("blue", "c7", self), 
                         Soldier("blue", "e7", self), Soldier("blue", "g7", self), Soldier("blue", "i7", self)
                         ]
@@ -164,8 +158,8 @@ class Board:
                 "red": {
                     "general": General("red", "e2", self), 
                     "other-pieces":[
-                        Chariot("red", "a1", self), Chariot("red", "i1", self), Elephant("red", "b1", self), Elephant("red", "g1", self), 
-                        Horse("red", "c1", self), Horse("red", "h1", self), Cannon("red", "b3", self), Cannon("red", "h3", self), 
+                        Chariot("red", "a1", self), Chariot("red", "i1", self), Elephant("red", "c1", self), Elephant("red", "h1", self),
+                        Horse("red", "b1", self), Horse("red", "g1", self), Cannon("red", "b3", self), Cannon("red", "h3", self),
                         Guard("red", "d1", self), Guard("red", "f1", self), Soldier("red", "a4", self), Soldier("red", "c4", self), 
                         Soldier("red", "e4", self), Soldier("red", "g4", self), Soldier("red", "i4", self)
                         ]
@@ -186,7 +180,7 @@ class Board:
         if not self.valid_space(space):
             raise SpaceError(f"{space} is not a valid space")
         if self.spaces[space] is not None:
-            raise SpaceOccupied(f"{space} already has a piece")
+            raise SpaceError(f"{space} already has a piece")
         self.spaces[space] = piece
     
     def assign_space(self, space: str, obj: Piece = None):
@@ -266,6 +260,7 @@ class Board:
         all_spaces = set()
         for piece in pieces:
             spaces = piece.get_attacking_spaces()
+            print(type(piece), piece.space, ":", spaces)
             for space in spaces:
                 all_spaces.add(space)
         return all_spaces
@@ -374,6 +369,7 @@ class General(FortressPiece):
 
     def in_check(self):
         opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
+        print("space:", self.space, "attacking:", opponent_attacking_spaces)
         if self.space in opponent_attacking_spaces:
             return True
         return False
@@ -545,9 +541,11 @@ class Cannon(Piece):
             space = get_next_space(space)
         if board.has_piece(space) and board.valid_space(space):
             space = get_next_space(space)
-        while board.valid_space(space) and (board.space_open(space) or board.has_opponent_piece(space, self.color)):
+        while board.valid_space(space) and board.space_open(space):
             spaces.append(space)
             space = get_next_space(space)
+        if move_type == "legal" and board.has_opponent_piece(space, self.color) and board.valid_space(space):
+            spaces.append(space)
         if move_type == "attacking" and board.valid_space(space):
             spaces.append(space)
         return spaces
@@ -662,6 +660,10 @@ def print_board(board):
 
 
 
-
+b = Board(True)
+c = Cannon("red", "b3", b)
+h = Horse("red", "c3", b)
+print_board(b)
+print(c.get_legal_moves())
 
     
