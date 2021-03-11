@@ -21,6 +21,25 @@ class SpaceSequence:
         except IndexError:
             return "00"
 
+class Move:
+
+    def __init__(self, curr_space, new_space, board):
+        self._board = board
+        self._curr_space = curr_space
+        self._new_space = new_space
+        self._piece = board.get_piece(curr_space)
+        self._captured_piece = board.get_piece(new_space)
+
+    def commit(self):
+        if self._board.has_opponent_piece(self._new_space, self._piece.color):
+            self._board.remove_piece(self._new_space)
+        self._piece.change_space(self._new_space)
+
+    def revert(self):
+        self._piece.change_space(self._curr_space)
+        if self._captured_piece is not None:
+            self._board.add_piece(self._new_space, self._captured_piece)
+
 class Space:
     
     def __new__(cls, space:str=None):
@@ -73,9 +92,6 @@ class Piece:
     @property
     def color(self):
         return self._color
-
-    def get_space(self):
-        return self._space
 
     def get_forward_space(self, starting_space: str = None):
         space = starting_space or self.space
@@ -135,12 +151,7 @@ class Piece:
         self._space = new_space
 
     def move(self, new_space: str):
-        if self._board.has_opponent_piece(new_space, self.color):
-            print(self, "capturing", self._board.get_piece(new_space))
-            self._board.remove_piece(new_space)
-        print(self, self.space,"to empty space",new_space)
-        self.change_space(new_space)
-
+        return Move(self.space, new_space, self._board)
 
 class Board:
 
@@ -200,6 +211,10 @@ class Board:
         piece = self.get_piece(space)
         self.assign_space(space, None)
         self.pieces[piece.color]["other-pieces"].remove(piece)
+
+    def add_piece(self, space: str, piece: Piece):
+        self.assign_space(space, piece)
+        self.pieces[piece.color]["other-pieces"].append(piece)
 
     def get_fortress_spaces(self, color: str):
         if color == "red":
@@ -595,27 +610,23 @@ class JanggiGame:
     def make_move(self, current_space:str, new_space:str):
         print(f'("{current_space}", "{new_space}")')
         if self._game_state != "UNFINISHED":
-            #print("game over")
             return False
         if self.is_in_check(self._turn) and self._board.get_general(self._turn).space != current_space:
-            #print("need to move general. in check")
             return False
         if current_space == new_space:
             self.change_turn()
             return True
         piece = self._board.get_piece(current_space)
         if piece is None or piece.color != self._turn:
-            #print("not your turn")
             return False
         legal_spaces = piece.get_legal_moves()
         if new_space not in legal_spaces:
-            #print("not a legal move")
             return False
-        piece.move(new_space)
+        move = piece.move(new_space)
+        move.commit()
         # make sure move doesn't put player's general in check
         if self.is_in_check(self._turn):
-            piece.move(current_space) # move the piece back
-            #print("can't move into check")
+            move.revert()
             return False
         # update game state
         if self._turn == "blue" and self._board.get_opponent_general("blue").get_legal_moves() == []:
