@@ -101,17 +101,29 @@ class Piece:
             return self._board.get_bottom_space(space)
         return self._board.get_top_space(space)
 
-    def get_diagonal_right(self, starting_space: str = None):
+    def get_diagonal_forward_right(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_top_right_space(space)
         return self._board.get_bottom_left_space(space)
 
-    def get_diagonal_left(self, starting_space: str = None):
+    def get_diagonal_forward_left(self, starting_space: str = None):
         space = starting_space or self.space
         if self.color == "blue":
             return self._board.get_top_left_space(space)
         return self._board.get_bottom_right_space(space)
+
+    def get_diagonal_backward_right(self, starting_space: str = None):
+        space = starting_space or self.space
+        if self.color == "blue":
+            return self._board.get_bottom_right_space(space)
+        return self._board.get_top_left_space(space)
+
+    def get_diagonal_backward_left(self, starting_space: str = None):
+        space = starting_space or self.space
+        if self.color == "blue":
+            return self._board.get_bottom_left_space(space)
+        return self._board.get_top_right_space(space)
 
     def in_fortress(self):
         if self.space in self._board.fortress_spaces:
@@ -124,7 +136,9 @@ class Piece:
 
     def move(self, new_space: str):
         if self._board.has_opponent_piece(new_space, self.color):
+            print(self, "capturing", self._board.get_piece(new_space))
             self._board.remove_piece(new_space)
+        print(self, self.space,"to empty space",new_space)
         self.change_space(new_space)
 
 
@@ -373,10 +387,12 @@ class Horse(Piece):
         left_space = self.get_left_space()
         right_space = self.get_right_space()
         move_sequences = [
-            (forward_space, self.get_diagonal_right(forward_space)),
-            (forward_space, self.get_diagonal_left(forward_space)),
-            (left_space, self.get_diagonal_left(left_space)),
-            (right_space, self.get_diagonal_right(right_space))
+            (forward_space, self.get_diagonal_forward_right(forward_space)),
+            (forward_space, self.get_diagonal_forward_left(forward_space)),
+            (left_space, self.get_diagonal_forward_left(left_space)),
+            (left_space, self.get_diagonal_backward_left(left_space)),
+            (right_space, self.get_diagonal_forward_right(right_space)),
+            (right_space, self.get_diagonal_backward_right(right_space))
         ]
         return move_sequences
 
@@ -405,17 +421,21 @@ class Elephant(Piece):
 
     def get_move_sequences(self):
         forward_space = self.get_forward_space()
-        forward_diag_right_space = self.get_diagonal_right(forward_space)
-        forward_diag_left_space = self.get_diagonal_left(forward_space)
+        forward_diag_right_space = self.get_diagonal_forward_right(forward_space)
+        forward_diag_left_space = self.get_diagonal_forward_left(forward_space)
         left_space = self.get_left_space()
-        left_diag_left_space = self.get_diagonal_left(left_space)
+        left_diag_forward_space = self.get_diagonal_forward_left(left_space)
+        left_diag_backward_space = self.get_diagonal_backward_left(left_space)
         right_space = self.get_right_space()
-        right_diag_right_space = self.get_diagonal_right(right_space)
+        right_diag_forward_space = self.get_diagonal_forward_right(right_space)
+        right_diag_backward_space = self.get_diagonal_backward_right(right_space)
         move_sequences = [
-            (forward_space, forward_diag_right_space, self.get_diagonal_right(forward_diag_right_space)),
-            (forward_space, forward_diag_left_space , self.get_diagonal_left(forward_diag_left_space)),
-            (right_space, right_diag_right_space, self.get_diagonal_right(right_diag_right_space)),
-            (left_space, left_diag_left_space, self.get_diagonal_left(left_diag_left_space))
+            (forward_space, forward_diag_right_space, self.get_diagonal_forward_right(forward_diag_right_space)),
+            (forward_space, forward_diag_left_space , self.get_diagonal_forward_left(forward_diag_left_space)),
+            (right_space, right_diag_forward_space, self.get_diagonal_forward_right(right_diag_forward_space)),
+            (right_space, right_diag_backward_space, self.get_diagonal_backward_right(right_diag_backward_space)),
+            (left_space, left_diag_forward_space, self.get_diagonal_forward_left(left_diag_forward_space)),
+            (left_space, left_diag_backward_space, self.get_diagonal_backward_left(left_diag_backward_space))
         ]
         return move_sequences
 
@@ -657,11 +677,9 @@ if __name__ == "__main__":
     game = JanggiGame()
 
     for move in moves:
-        print(move)
-        print(game._turn)
-        print("red:", game.is_in_check("red"), "blue:", game.is_in_check("blue"))
-        print(game.make_move(move[0], move[1]))
+        game.make_move(move[0], move[1])
         game.view()
-        print(game.get_game_state())
+
+    print(game.is_in_check("blue"))
 
     
