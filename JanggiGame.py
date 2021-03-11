@@ -149,8 +149,8 @@ class Board:
                 "blue": {
                     "general": General("blue", "e9", self), 
                     "other-pieces": [
-                        Chariot("blue", "a10", self), Chariot("blue", "i10", self), Elephant("blue", "c10", self), Elephant("blue", "h10", self),
-                        Horse("blue", "b10", self), Horse("blue", "g10", self), Cannon("blue", "b8", self), Cannon("blue", "h8", self),
+                        Chariot("blue", "a10", self), Chariot("blue", "i10", self), Elephant("blue", "b10", self), Elephant("blue", "g10", self),
+                        Horse("blue", "c10", self), Horse("blue", "h10", self), Cannon("blue", "b8", self), Cannon("blue", "h8", self),
                         Guard("blue", "d10", self), Guard("blue", "f10", self), Soldier("blue", "a7", self), Soldier("blue", "c7", self), 
                         Soldier("blue", "e7", self), Soldier("blue", "g7", self), Soldier("blue", "i7", self)
                         ]
@@ -158,8 +158,8 @@ class Board:
                 "red": {
                     "general": General("red", "e2", self), 
                     "other-pieces":[
-                        Chariot("red", "a1", self), Chariot("red", "i1", self), Elephant("red", "c1", self), Elephant("red", "h1", self),
-                        Horse("red", "b1", self), Horse("red", "g1", self), Cannon("red", "b3", self), Cannon("red", "h3", self),
+                        Chariot("red", "a1", self), Chariot("red", "i1", self), Elephant("red", "b1", self), Elephant("red", "g1", self),
+                        Horse("red", "c1", self), Horse("red", "h1", self), Cannon("red", "b3", self), Cannon("red", "h3", self),
                         Guard("red", "d1", self), Guard("red", "f1", self), Soldier("red", "a4", self), Soldier("red", "c4", self), 
                         Soldier("red", "e4", self), Soldier("red", "g4", self), Soldier("red", "i4", self)
                         ]
