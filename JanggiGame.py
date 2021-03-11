@@ -364,7 +364,6 @@ class General(FortressPiece):
 
     def in_check(self):
         opponent_attacking_spaces = self._board.get_opponents_attacking_spaces(self.color)
-        print(self.space, opponent_attacking_spaces)
         if self.space in opponent_attacking_spaces:
             return True
         return False
@@ -595,6 +594,7 @@ class JanggiGame:
             self._turn = "blue"
 
     def make_move(self, current_space:str, new_space:str):
+        print(current_space, new_space)
         if self._game_state != "UNFINISHED":
             #print("game over")
             return False
