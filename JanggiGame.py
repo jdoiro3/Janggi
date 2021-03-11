@@ -876,26 +876,21 @@ class JanggiGame:
             current_space: str
             new_space: str
         Returns: True | False"""
-        print(f'("{current_space}", "{new_space}")')
         if self._game_state != "UNFINISHED":
-            print("game over")
             return False
         if current_space == new_space:
             self.change_turn()
             return True
         piece = self._board.get_piece(current_space)
         if piece is None or piece.color != self._turn:
-            print("not players turn")
             return False
         legal_spaces = piece.get_legal_moves()
         if new_space not in legal_spaces:
-            print("not legal move")
             return False
         move = piece.move(new_space)
         move.commit()
         # make sure move doesn't put player's general in check
         if self.is_in_check(self._turn):
-            print("cant move into check")
             move.revert()
             return False
         # update game state
