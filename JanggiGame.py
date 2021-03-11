@@ -594,7 +594,7 @@ class JanggiGame:
             self._turn = "blue"
 
     def make_move(self, current_space:str, new_space:str):
-        print(current_space, new_space)
+        print(f'("{current_space}", "{new_space}")')
         if self._game_state != "UNFINISHED":
             #print("game over")
             return False
