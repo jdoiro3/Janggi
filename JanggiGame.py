@@ -53,10 +53,10 @@ class Piece:
             board.place_piece(self, space)
 
     def __str__(self):
-        return f"{self._color[0]}{self.__class__.__name__[0]}"
+        return f"{self._color[0]}{self.__class__.__name__[0:2]}"
 
     def __repr__(self):
-        return f"{self._color[0]}{self.__class__.__name__[0]}"
+        return f"{self._color[0]}{self.__class__.__name__[0:2]}"
 
     @property
     def space(self):
@@ -82,12 +82,6 @@ class Piece:
         if self.color == "blue":
             return self._board.get_top_space(space)
         return self._board.get_bottom_space(space)
-
-    def get_forward_spaces(self, starting_space: str = None):
-        space = starting_space or self.space
-        if self.color == "blue":
-            return self._board.get_top_spaces(space)
-        return self._board.get_bottom_spaces(space)
 
     def get_right_space(self, starting_space: str = None):
         space = starting_space or self.space
@@ -128,13 +122,9 @@ class Piece:
         self._board.move_piece(self, new_space)
         self._space = new_space
 
-    def capture(self, space: str):
-        self._board.add_captured_piece(self.color, space)
-        self._board.assign_space(space, None)
-
     def move(self, new_space: str):
         if self._board.has_opponent_piece(new_space, self.color):
-            self.capture(new_space)
+            self._board.remove_piece(new_space)
         self.change_space(new_space)
 
 
@@ -165,7 +155,6 @@ class Board:
                         ]
                 }
             }
-        self.captured_pieces = {"blue": [], "red": []}
 
     @property
     def fortress_spaces(self):
@@ -189,6 +178,15 @@ class Board:
         else:
             raise SpaceError(f"{space} is not a valid space")
 
+    def move_piece(self, piece: Piece, new_space: str):
+        self.assign_space(piece.space, None)
+        self.assign_space(new_space, piece)
+
+    def remove_piece(self, space: str):
+        piece = self.get_piece(space)
+        self.assign_space(space, None)
+        self.pieces[piece.color]["other-pieces"].remove(piece)
+
     def get_fortress_spaces(self, color: str):
         if color == "red":
             return self.red_fortress_spaces
@@ -211,11 +209,6 @@ class Board:
 
     def get_row(self, row: int):
         return [self.spaces[space] for space in self.get_row_spaces(row)]
-
-    def add_captured_piece(self, capturer_color: str, space: str):
-        piece = self.spaces[space]
-        self.captured_pieces[capturer_color].append(piece)
-        self.pieces[piece.color]["other-pieces"].remove(piece)
 
     def get_piece(self, space: str):
         if not self.valid_space(space):
@@ -263,10 +256,6 @@ class Board:
                 all_spaces.add(space)
         return all_spaces
 
-    def move_piece(self, piece: Piece, new_space: str):
-        self.assign_space(piece.space, None)
-        self.assign_space(new_space, piece)
-
     def get_right_space(self, space: str):
         space = Space(space)
         col = chr(space.col + 1)
@@ -287,16 +276,6 @@ class Board:
         row = str(space.row - 1)
         top_space = col + row
         return top_space
-
-    def get_top_spaces(self, space: str):
-        space = Space(space)
-        column_spaces = self.get_column_spaces(space.col)
-        return [space for space in column_spaces if Space(space).row < space.row]
-
-    def get_bottom_spaces(self, space: str):
-        space = Space(space)
-        column_spaces = self.get_column_spaces(space.col)
-        return [s for s in column_spaces if Space(s).row > space.row]
 
     def get_bottom_space(self, space: str):
         space = Space(space)
@@ -641,35 +620,43 @@ def print_board(board):
 
     for col in "abcdefghi":
         if col == "a":
-            print("   "+col, end=" "*4)
+            print("   "+col, end=" "*5)
         else:
-            print(col, end=" "*4)
+            print(col, end=" "*5)
     print()
     for row in [1,2,3,4,5,6,7,8,9,10]:
-        print("------------------------------------------------")
+        print("------------------------------------------------------")
         if row == 10:
-            print(str(row)+" "+" | ".join(["  " if v is None else str(v) for v in board.get_row(row)]))
+            print(str(row)+" "+" | ".join(["   " if v is None else str(v) for v in board.get_row(row)]))
         else:
-            print(str(row)+"  "+" | ".join(["  " if v is None else str(v) for v in board.get_row(row)]))
-    print("------------------------------------------------")
+            print(str(row)+"  "+" | ".join(["   " if v is None else str(v) for v in board.get_row(row)]))
+    print("------------------------------------------------------")
 
 
 if __name__ == "__main__":
-    col_dict = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', 7: 'g', 8: 'h', 9: 'i'}
-    def move_converter(move, col_dict):
-        row = move[0]
-        col = col_dict[int(move[1])]
-        if row == "0":
-            row = "10"
-        return col + row
-    moves = [("79", "78"), ("41", "42"), ("02", "83"), ("12", "33"), ("82", "85"), ("32", "35"),
-             ("75", "74"), ("17", "36"), ("03", "75"), ("45", "46"), ("08", "76"), ("13", "45"), ("04", "94"),
-             ("25", "26"), ("06", "96"), ("11", "51"), ("77", "67"), ("16", "25")]
-    conv_moves = [(move_converter(move[0], col_dict), move_converter(move[1], col_dict)) for move in moves]
+
+    moves = [("c7", "c6"),
+             ("c1", "d3"),
+             ("b10", "d7"),
+             ("b3", "e3"),
+             ("c10", "d8"),
+             ("h1", "g3"),
+             ("e7", "e6"),
+             ("e3", "e6"),
+             ("h8", "c8"),
+             ("d3", "e5"),
+             ("c8", "c4"),
+             ("e5", "c4"),
+             ("i10", "i8"),
+             ("g4", "f4"),
+             ("i8", "f8"),
+             ("g3", "h5"),
+             ("h10", "g8"),
+             ("e6", "e3")]
 
     game = JanggiGame()
 
-    for move in conv_moves:
+    for move in moves:
         print(move)
         print(game._turn)
         print("red:", game.is_in_check("red"), "blue:", game.is_in_check("blue"))
