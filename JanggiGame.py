@@ -260,7 +260,6 @@ class Board:
         all_spaces = set()
         for piece in pieces:
             spaces = piece.get_attacking_spaces()
-            print(type(piece), piece.space, ":", spaces)
             for space in spaces:
                 all_spaces.add(space)
         return all_spaces
