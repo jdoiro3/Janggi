@@ -777,6 +777,9 @@ class Cannon(Piece):
         while board.space_open(space) and board.valid_space(space):
             space = get_next_space(space)
         if board.has_piece(space) and board.valid_space(space):
+            piece = board.get_piece(space)
+            if type(piece) == Cannon: # Cannon can't jump over another Cannon
+                return []
             space = get_next_space(space)
         while board.valid_space(space) and board.space_open(space):
             spaces.append(space)
