@@ -564,10 +564,13 @@ class General(FortressPiece):
     def in_checkmate(self):
         """Returns True is the general is in checkmate
         Returns: True | False"""
-        legal_moves = self.get_legal_moves()
-        if legal_moves:
+        if self.in_check():
+            legal_moves = self.get_legal_moves()
+            if legal_moves:
+                return False
+            return True
+        else:
             return False
-        return True
 
     def get_legal_moves(self):
         """Returns a list of spaces the general can move to
@@ -596,11 +599,14 @@ class Horse(Piece):
         """Returns a list of tuples for each possible sequence of moves
         Returns: list"""
         forward_space = self.get_forward_space()
+        backward_space = self.get_backward_space()
         left_space = self.get_left_space()
         right_space = self.get_right_space()
         move_sequences = [
             (forward_space, self.get_diagonal_forward_right(forward_space)),
             (forward_space, self.get_diagonal_forward_left(forward_space)),
+            (backward_space, self.get_diagonal_backward_left(backward_space)),
+            (backward_space, self.get_diagonal_backward_right(backward_space)),
             (left_space, self.get_diagonal_forward_left(left_space)),
             (left_space, self.get_diagonal_backward_left(left_space)),
             (right_space, self.get_diagonal_forward_right(right_space)),
@@ -642,6 +648,9 @@ class Elephant(Piece):
         forward_space = self.get_forward_space()
         forward_diag_right_space = self.get_diagonal_forward_right(forward_space)
         forward_diag_left_space = self.get_diagonal_forward_left(forward_space)
+        backward_space = self.get_backward_space()
+        backward_diag_right_space = self.get_diagonal_backward_right(backward_space)
+        backward_diag_left_space = self.get_diagonal_backward_left(backward_space)
         left_space = self.get_left_space()
         left_diag_forward_space = self.get_diagonal_forward_left(left_space)
         left_diag_backward_space = self.get_diagonal_backward_left(left_space)
@@ -651,6 +660,8 @@ class Elephant(Piece):
         move_sequences = [
             (forward_space, forward_diag_right_space, self.get_diagonal_forward_right(forward_diag_right_space)),
             (forward_space, forward_diag_left_space , self.get_diagonal_forward_left(forward_diag_left_space)),
+            (backward_space, backward_diag_right_space, self.get_diagonal_backward_right(backward_diag_right_space)),
+            (backward_space, backward_diag_left_space, self.get_diagonal_backward_left(backward_diag_left_space)),
             (right_space, right_diag_forward_space, self.get_diagonal_forward_right(right_diag_forward_space)),
             (right_space, right_diag_backward_space, self.get_diagonal_backward_right(right_diag_backward_space)),
             (left_space, left_diag_forward_space, self.get_diagonal_forward_left(left_diag_forward_space)),
@@ -744,7 +755,7 @@ class Chariot(Piece):
         attacking_right_spaces = self.get_moves_in_direction(self.get_right_space, "attacking")
         attacking_backward_spaces = self.get_moves_in_direction(self.get_backward_space, "attacking")
         spaces = attacking_forward_spaces+attacking_left_spaces+attacking_right_spaces+attacking_backward_spaces
-        if self.in_fortress():
+        if self.in_fortress() and self.space in self._diagonal_moves:
             diag_spaces = self._diagonal_moves[self.space]
             if self.space in ["e2", "e9"]:
                 for space in diag_spaces:
@@ -760,8 +771,7 @@ class Cannon(Piece):
     """Janggi Cannon"""
 
     _diagonal_moves = {"d1": ["e2", "f3"], "f1": ["e2", "d3"], "d3": ["e2", "f1"], "f3": ["e2", "d1"],
-                       "d8": ["e9", "f10"], "f8": ["e9", "d10"],
-                       "d10": ["e9", "f8"], "f10": ["e9", "d8"]}
+                       "d8": ["e9", "f10"], "f8": ["e9", "d10"], "d10": ["e9", "f8"], "f10": ["e9", "d8"]}
 
     def get_moves_in_direction(self, next_space_method, move_type: str = "legal"):
         """gets spaces the piece can move to in a given direction.
@@ -784,7 +794,7 @@ class Cannon(Piece):
         while board.valid_space(space) and board.space_open(space):
             spaces.append(space)
             space = get_next_space(space)
-        if move_type == "legal" and board.has_opponent_piece(space, self.color) and board.valid_space(space):
+        if move_type == "legal" and board.has_opponent_piece(space, self.color) and board.valid_space(space) and type(board.get_piece(space)) != Cannon:
             spaces.append(space)
         if move_type == "attacking" and board.valid_space(space):
             spaces.append(space)
@@ -879,27 +889,33 @@ class JanggiGame:
             current_space: str
             new_space: str
         Returns: True | False"""
+        print(current_space, new_space)
         if self._game_state != "UNFINISHED":
+            print("someone won")
             return False
         if current_space == new_space:
             self.change_turn()
             return True
         piece = self._board.get_piece(current_space)
         if piece is None or piece.color != self._turn:
+            print("no piece there or not your turn")
             return False
         legal_spaces = piece.get_legal_moves()
         if new_space not in legal_spaces:
+            print("not legal move")
             return False
         move = piece.move(new_space)
         move.commit()
         # make sure move doesn't put player's general in check
         if self.is_in_check(self._turn):
             move.revert()
+            print("move exposes general")
             return False
         # update game state
-        if self._board.get_opponent_general(self._turn).get_legal_moves() == []:
+        if self._board.get_opponent_general(self._turn).in_checkmate():
             self._game_state = self._turn.upper()+"_WON"
         self.change_turn()
+        print_board(self._board)
         return True
     
     def is_in_check(self, color:str):
@@ -928,106 +944,5 @@ def print_board(board):
         else:
             print(str(row)+"  "+" | ".join(["   " if v is None else str(v) for v in board.get_row(row)]))
     print("------------------------------------------------------")
-
-
-if __name__ == "__main__":
-
-    game = JanggiGame()
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('a7', 'b7')
-    game.make_move('i4', 'h4')
-    game.make_move('h10', 'g8')
-    game.make_move('c1', 'd3')
-    game.make_move('h8', 'e8')
-    game.make_move('i1', 'i2')
-    game.make_move('e7', 'f7')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('b3', 'e3')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('g10', 'e7')
-    game.make_move('e4', 'd4')
-    game.make_move('c10', 'd8')
-    game.make_move('g1', 'e4')
-    game.make_move('f10', 'f9')
-    game.make_move('h1', 'g3')
-    game.make_move('a10', 'a6')
-    game.make_move('d4', 'd5')
-    game.make_move('e9', 'f10')
-    game.make_move('h3', 'f3')
-    game.make_move('e8', 'h8')
-    game.make_move('i2', 'h2')
-    game.make_move('h8', 'f8')
-    game.make_move('f1', 'f2')
-    game.make_move('b8', 'e8')
-    game.make_move('f3', 'f1')
-    game.make_move('i7', 'h7')
-    game.make_move('f1', 'c1')
-    game.make_move('d10', 'e9')
-    game.make_move('a4', 'b4')
-    game.make_move('a6', 'a1')
-    game.make_move('c1', 'a1')
-    game.make_move('f8', 'd10')
-    game.make_move('d5', 'c5')
-    game.make_move('i10', 'i6')
-    game.make_move('b1', 'd4')
-    game.make_move('c7', 'c6')
-    game.make_move('c5', 'b5')
-    game.make_move('b10', 'd7')
-    game.make_move('d4', 'f7')
-    game.make_move('g7', 'f7')
-    game.make_move('a1', 'f1')
-    game.make_move('g8', 'f6')
-    game.make_move('f1', 'f5')
-    game.make_move('f6', 'd5')
-    game.make_move('e3', 'e5')
-    game.make_move('f7', 'f6')
-    game.make_move('f5', 'f7')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('f10', 'e10')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('e2', 'f1')
-    game.make_move('i6', 'i3')
-    game.make_move('h2', 'g2')
-    game.make_move('i3', 'i1')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('f1', 'e2')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('f6', 'f5')
-    game.make_move('c4', 'd4')
-    game.make_move('f5', 'e5')
-    game.make_move('f7', 'd7')
-    game.make_move('e7', 'g4')
-    game.make_move('d4', 'd5')
-    game.make_move('e5', 'e4')
-    game.make_move('d3', 'e5')
-    game.make_move('e4', 'e3')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('e2', 'd2')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('e3', 'e2')
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    print(game.make_move('d2', 'd3'))
-    print(game.is_in_check('red'))
-    print(game.is_in_check('blue'))
-    game.make_move('e8', 'e4')
-    game.make_move('f2', 'e2')
-    game.make_move('i1', 'd1')
-    game.make_move('e2', 'd2')
-    print(game.make_move('d1', 'f3'))
-    print(game.get_game_state())
-    game.view()
-
-    p = game._board.get_piece("d3")
-    print(p.get_legal_moves())
 
     
