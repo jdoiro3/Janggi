@@ -24,17 +24,12 @@ class SpaceSequence:
     """
 
     def __init__(self, spaces: list):
-        """
-        Args:
-            spaces: list
-        """
         self.spaces = spaces
 
     def get_next(self, space: str = None):
         """Returns the first space unless another space is given.
         Args:
             space: str
-
         Returns: str
             If nothing is passed, this will return the first space in the list. If a space is passed, it will return
             the next space in the list. "00" is returned if a space is passed that isn't in the list.
@@ -51,12 +46,10 @@ class SpaceSequence:
 
 
 class Move:
-    """Helper class that represents a move on the board.
-    """
+    """Helper class that represents a move on the board."""
 
     def __init__(self, curr_space, new_space, board):
-        """
-        Args:
+        """Args:
             curr_space: str
             new_space: str
             board: JanggiBoard.Board
@@ -117,16 +110,8 @@ class Space:
 
 
 class Piece:
-    """base class for all Janggi Pieces"""
 
     def __init__(self, color: str = None, space: str = None, board: 'Board' = None):
-        """
-        Args:
-            color: str
-                "blue" | "red"
-            space: str
-            board: JanggiGame.Board
-        """
         self._color = color
         self._space = Space(space)
         self._board = board
@@ -141,24 +126,18 @@ class Piece:
 
     @property
     def space(self):
-        """Returns the space as a string (e.g. "a1")
-        Returns: str"""
         return str(self._space)
 
     @property
     def row(self):
-        """Returns the row as an int"""
         return self._space.row
 
     @property
     def col(self):
-        """Returns the column as an int"""
         return self._space.col
 
     @property
     def color(self):
-        """returns the color ("red" | "blue"
-        """
         return self._color
 
     def get_forward_space(self, starting_space: str = None):
@@ -272,10 +251,8 @@ class Piece:
         return Move(self.space, new_space, self._board)
 
 class Board:
-    """Represents the game board"""
 
     def __init__(self):
-        """initializes the board"""
         self.spaces = {col + str(row): None for col in "abcdefghi" for row in range(1, 11)}
         self.blue_fortress_spaces = ["d8", "d9", "d10", "e8", "e9", "e10", "f8", "f9", "f10"]
         self.red_fortress_spaces = ["d1", "d2", "d3", "e1", "e2", "e3", "f1", "f2", "f3"]
@@ -443,7 +420,7 @@ class Board:
         return self.pieces[color]["other-pieces"]
 
     def get_opponents_attacking_spaces(self, color: str):
-        """Gets all the opponents attacking spaces. These are spaces that piece can move to (open spaces and spaces with opossing pieces)
+        """Gets all the opponents attacking spaces. These are spaces that piece can move to (open spaces and spaces with opposing pieces)
         as well as spaces with another piece of the same color. This allows checking for checkmate. If a general tries to capture a piece that is also one of
         another pieces attacking spaces, it can't move there since it would be captured on the next move.
 
@@ -593,7 +570,6 @@ class Guard(FortressPiece):
         return self.get_fortress_moves()
 
 class Horse(Piece):
-    """Janggi Horse"""
 
     def get_move_sequences(self):
         """Returns a list of tuples for each possible sequence of moves
@@ -640,7 +616,6 @@ class Horse(Piece):
         
 
 class Elephant(Piece):
-    """Janggi Elephant"""
 
     def get_move_sequences(self):
         """Returns a list of tuples for each possible sequence of moves
@@ -696,7 +671,6 @@ class Elephant(Piece):
 
 
 class Chariot(Piece):
-    """Janggi Chariot"""
 
     _diagonal_moves = {"d3": ["e2", "f1"], "d1": ["e2", "f3"], "f1": ["e2", "d3"], "f3": ["e2", "d1"],
                        "e2": ["d1", "f1", "d3", "f3"],
@@ -768,14 +742,12 @@ class Chariot(Piece):
 
         
 class Cannon(Piece):
-    """Janggi Cannon"""
 
     _diagonal_moves = {"d1": ["e2", "f3"], "f1": ["e2", "d3"], "d3": ["e2", "f1"], "f3": ["e2", "d1"],
                        "d8": ["e9", "f10"], "f8": ["e9", "d10"], "d10": ["e9", "f8"], "f10": ["e9", "d8"]}
 
     def get_moves_in_direction(self, next_space_method, move_type: str = "legal"):
         """gets spaces the piece can move to in a given direction.
-
         Args:
             next_space_method: a method for getting the next space
             move_type: 'attacking' | 'legal'
@@ -829,7 +801,6 @@ class Cannon(Piece):
         return attacking_spaces
 
 class Soldier(Piece):
-    """Janggi Soldier"""
 
     _diagonal_moves = {"d3": "e2", "f3": "e2", "e2": ["f1", "d1"], "d8": "e9", "f8": "e9", "e9": ["d10", "f10"]}
     
@@ -864,10 +835,8 @@ class Soldier(Piece):
         return attacking_spaces
 
 class JanggiGame:
-    """janggiGame class used to play janggi (aka Korean Chess)."""
     
     def __init__(self):
-        """initialized board and state"""
         self._board = Board()
         self._turn = "blue"
         self._game_state = "UNFINISHED"
@@ -877,7 +846,6 @@ class JanggiGame:
         print_board(self._board)
 
     def change_turn(self):
-        """changes the turn"""
         if self._turn == "blue":
             self._turn = "red"
         else:
@@ -919,7 +887,7 @@ class JanggiGame:
         return True
     
     def is_in_check(self, color:str):
-        """Returns True if player is in check"""
+        """returns True if player is in check"""
         general = self._board.get_general(color)
         return general.in_check()
 
